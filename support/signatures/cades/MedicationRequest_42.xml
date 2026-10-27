@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MedicationRequest xmlns="http://hl7.org/fhir">
+	<id value="123456789A123456789B123456789C123456"/>
+	<contained>
+		<Medication>
+			<id value="123456789A123456789B123456789C123456"/>
+			<code>
+				<coding>
+					<system value="http://snomed.info/sct"/>
+					<code value="08699784"/>
+					<display value="Madopar® LT, Tabletten zur Herstellung einer Suspension zum Einnehmen"/>
+					<gemAutIdem>0</gemAutIdem>
+				</coding>
+			</code>
+			<gemPackungsgröße>100</gemPackungsgröße>
+			<gemEinheit>St</gemEinheit>
+			<gemAnzahlPackungen>1</gemAnzahlPackungen>
+		</Medication>
+	</contained>
+	<identifier>
+		<use value="official"/>
+		<system value="http://www.bmc.nl/portal/prescriptions"/>
+		<value value="123456789A123456789B123456789C123456"/>
+	</identifier>
+	<status value="completed"/>
+	<intent value="order"/>
+	<medicationReference>
+		<reference value="#123456789A123456789B123456789C123456"/>
+		<display value="Madopar® LT, Tabletten zur Herstellung einer Suspension zum Einnehmen"/>
+		<gemPZN>08699784</gemPZN>
+	</medicationReference>
+	<subject>
+		<reference value="Patient/pat1"/>
+		<display value="Johanna Mustermann-Müller"/>
+		<gemPatKostenträgertyp>00</gemPatKostenträgertyp>
+		<gemPatIK>101234567</gemPatIK>
+		<gemPatKostenträgername>Musterkrankenkasse</gemPatKostenträgername>
+		<gemPatWOB>72</gemPatWOB>
+		<gemPatUnfall>0</gemPatUnfall>
+		<gemPatZuzahlungsstatus>1</gemPatZuzahlungsstatus>
+		<gemPatVersichertenart>05</gemPatVersichertenart>
+		<gemPatPersonengruppe>08</gemPatPersonengruppe>
+		<gemPatDMP-Kennzeichen>06</gemPatDMP-Kennzeichen>
+		<gemPatRechtsgrundlage>00</gemPatRechtsgrundlage>
+		<gemPatVersichertennummer>A123456789</gemPatVersichertennummer>
+		<gemPatVorname>Johanna</gemPatVorname>
+		<gemPatNachname>Mustermann-Müller</gemPatNachname>
+		<gemPatNameTitel>Prof. Dr.</gemPatNameTitel>
+		<gemPatNameVorsatz>von</gemPatNameVorsatz>
+		<gemPatGeburtsdatum>20.10.1945</gemPatGeburtsdatum>
+		<gemPatVersschutz>12/15</gemPatVersschutz>
+		<gemPatWohnsitz>D</gemPatWohnsitz>
+		<gemPatPLZ>12345</gemPatPLZ>
+		<gemPatOrt>Musterhausen</gemPatOrt>
+		<gemPatStr>Musterweg</gemPatStr>
+		<gemPatHnr>6</gemPatHnr>
+	</subject>
+	<authoredOn value="2015-01-15"/>
+	<requester>
+		<reference value="Practitioner/f007"/>
+		<display value="Muster Praxis"/>
+		<gemAusstellerTyp>00</gemAusstellerTyp>
+		<gemAusstellerNummer>12345678</gemAusstellerNummer>
+		<gemAusstellerVorname>Thomas</gemAusstellerVorname>
+		<gemAusstellerNachname>House</gemAusstellerNachname>
+		<gemAusstellerTitel>Dr.</gemAusstellerTitel>
+		<gemAusstellerBeruf>Internist</gemAusstellerBeruf>
+		<gemAusstellerBetriebsstätte>12345678</gemAusstellerBetriebsstätte>
+		<gemAusstellerNameBetrieb>Muster Praxis</gemAusstellerNameBetrieb>
+		<gemAusstellerWohnsitzBetrieb>D</gemAusstellerWohnsitzBetrieb>
+		<gemAusstellerPLZBetrieb>56789</gemAusstellerPLZBetrieb>
+		<gemAusstellerOrtBetrieb>Musterstadt</gemAusstellerOrtBetrieb>
+		<gemAusstellerStrBetrieb>Versorgungsstr.</gemAusstellerStrBetrieb>
+		<gemAusstellerHnrBetrieb>25</gemAusstellerHnrBetrieb>
+		<gemAusstellerTelefonBetrieb>09867-123456</gemAusstellerTelefonBetrieb>
+		<gemAusstellerMailBetrieb>info@Muster-Praxis.de</gemAusstellerMailBetrieb>
+	</requester>
+	<dosageInstruction>
+		<sequence value="1"/>
+		<text value="Tablette in einem Glas Wasser zerfallen lassen. Einnahme erfolgt 30 min vor der Mahlzeit "/>
+		<gemEinnahmehinweise>1 x morgens, 1x mittags, 1x abends</gemEinnahmehinweise>
+		<timing>
+			<repeat>
+				<frequency value="3"/>
+				<period value="1"/>
+				<periodUnit value="d"/>
+			</repeat>
+		</timing>
+		<doseAndRate>
+			<type>
+				<coding>
+					<system value="http://terminology.hl7.org/CodeSystem/dose-rate-type"/>
+					<code value="ordered"/>
+					<display value="Ordered"/>
+				</coding>
+			</type>
+			<doseQuantity>
+				<value value="1"/>
+				<unit value="TAB"/>
+				<system value="http://unitsofmeasure.org"/>
+				<code value="TAB"/>
+			</doseQuantity>
+		</doseAndRate>
+	</dosageInstruction>
+	<dispenseRequest>
+		<validityPeriod>
+			<start value="2015-04-10"/>
+			<end value="2016-05-10"/>
+		</validityPeriod>
+		<numberOfRepeatsAllowed value="3"/>
+		<quantity>
+			<value value="1"/>
+			<unit value="TAB"/>
+			<system value="http://unitsofmeasure.org"/>
+			<code value="TAB"/>
+		</quantity>
+		<expectedSupplyDuration>
+			<value value="10"/>
+			<unit value="days"/>
+			<system value="http://unitsofmeasure.org"/>
+			<code value="d"/>
+		</expectedSupplyDuration>
+	</dispenseRequest>
+</MedicationRequest>

@@ -1,0 +1,20 @@
+# Tiger proxy on the SICCT route LIANA → kartos terminal (LIANA-81, decision-11). popp.sh starts it with
+# KARTOS_TERMINAL=1 as container tiger-sicct; LIANA addresses KT-01 under this name.
+# TLS: the proxy terminates TLS and authenticates towards LIANA with the ID.SMKT.AUT of the gSMC-KT that kartos uses too
+# (support/pki/kt/, tools/pki/smkt-identity.py). LIANA checks C.SMKT.AUT against the TSL. Towards kartos the proxy
+# authenticates with LIANA's ID.SAK.AUT: kartos binds the pairing block to the key of the client certificate (LIANA-88,
+# gemSpec_KT TIP1-A_3046-01, SEQ_KT_0002 step 3), without it kartos answers VALIDATE with 6900.
+tigerProxy:
+  name: tiger-sicct
+  adminPort: 8080                 # WebUI, HTML export under /webui/getMessagesAsHtmlPage
+  proxyPort: 4742                 # SICCT port as kartos announces it; the image sets TIGERPROXY_PROXYPORT=9090, popp.sh overrides it
+  directReverseProxy:
+    hostname: kartos-terminal
+    port: 4742
+    # tcpIdleTimeoutInSeconds stays at the default: Tiger 4.4.5 only sets TCP_KEEPINTERVAL with it, in milliseconds instead
+    # of seconds (ClientBootstrapFactory); from 33 s on, the connection to kartos fails with "Invalid argument".
+  tls:
+    serverIdentity: "tiger-config/smkt-aut.p12;liana"
+    forwardMutualTlsIdentity: "tiger-config/sak-aut.p12;liana"
+  activateRbelParsingFor:
+    - sicct

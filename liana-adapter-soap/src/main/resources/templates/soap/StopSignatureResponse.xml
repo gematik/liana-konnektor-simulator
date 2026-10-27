@@ -1,0 +1,2 @@
+{@java.lang.String namespace}
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Header/><SOAP-ENV:Body><SIG:StopSignatureResponse xmlns:CONN="http://ws.gematik.de/conn/ConnectorCommon/v5.0" xmlns:SIG="{namespace}"><CONN:Status><CONN:Result>OK</CONN:Result></CONN:Status></SIG:StopSignatureResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>

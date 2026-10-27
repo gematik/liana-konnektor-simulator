@@ -1,0 +1,7 @@
+{@java.lang.String namespace}
+{@java.lang.String status}
+{@java.lang.Integer max}
+{@java.lang.String timer}
+{@java.lang.Integer countRemaining}
+{@java.lang.String timeRemaining}
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Header/><SOAP-ENV:Body><SIG:GetSignatureModeResponse xmlns:CONN="http://ws.gematik.de/conn/ConnectorCommon/v5.0" xmlns:SIG="{namespace}"><CONN:Status><CONN:Result>OK</CONN:Result></CONN:Status><SIG:ComfortSignatureStatus>{status}</SIG:ComfortSignatureStatus><SIG:ComfortSignatureMax>{max}</SIG:ComfortSignatureMax><SIG:ComfortSignatureTimer>{timer}</SIG:ComfortSignatureTimer>{#if timeRemaining}<SIG:SessionInfo><SIG:SignatureMode>COMFORT</SIG:SignatureMode><SIG:CountRemaining>{countRemaining}</SIG:CountRemaining><SIG:TimeRemaining>{timeRemaining}</SIG:TimeRemaining></SIG:SessionInfo>{/if}</SIG:GetSignatureModeResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>

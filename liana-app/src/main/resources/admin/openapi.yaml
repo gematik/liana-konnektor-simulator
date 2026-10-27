@@ -1,0 +1,896 @@
+openapi: 3.0.3
+info:
+  title: LIANA Admin-API
+  version: "${version}"
+  description: |
+    Admin-API von LIANA auf dem Management-Port (`liana.admin.port`, 9090, HTTP und HTTPS auf einem Port,
+    decision-017). JSON, ohne Auth, nur internes Netz. Änderungen sind flüchtig, `POST /admin/reset` stellt den
+    Stand aus `application.yaml` her (decision-4). Handgeschrieben (LIANA-149); `OpenApiTest` prüft, dass jede
+    Route beschrieben und jede beschriebene Route vorhanden ist.
+
+    Fehler kommen als `{"error": "…"}`: 400 ungültiger Body, 404 unbekanntes KT, Slot, Image, Clientsystem oder
+    Pfad, 409 TUC-Fehler mit Konnektor-Fehlercode (`code`), 501 in LIANA nicht umgesetzt (decision-12).
+    Keine Antwort enthält PIN-Werte oder private Schlüssel; einzige Ausnahme ist `config.kon` mit
+    `credentials.type: pkcs12`, das den Client-Container samt Schlüssel nach kon-format §6 ausliefert.
+servers:
+  - url: http://localhost:9090
+tags:
+  - name: Status
+  - name: Terminals
+  - name: Karten
+  - name: Ereignisse
+  - name: TLS und PKI
+  - name: Profil und Einstellungen
+  - name: Export
+
+paths:
+  /admin/ready:
+    get:
+      tags: [Status]
+      summary: Bereitschaft (LIANA-107)
+      responses:
+        "200":
+          description: Start abgeschlossen
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ready" }
+        "503":
+          description: Start läuft noch oder Shutdown
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ready" }
+
+  /admin/info:
+    get:
+      tags: [Status]
+      summary: Version, Umgebung, Herstellerprofil, Ports, Terminal-Modus
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Info" }
+
+  /admin/openapi.yaml:
+    get:
+      tags: [Status]
+      summary: Diese Beschreibung
+      responses:
+        "200":
+          description: OpenAPI 3.0
+          content:
+            application/yaml: {}
+
+  /admin/selftest/crypto/{check}:
+    get:
+      tags: [Status]
+      summary: Krypto-Selbsttest im laufenden Prozess (LIANA-4), auch im nativen Image
+      parameters:
+        - name: check
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [brainpool-ecdsa, es256-jws, brainpool-tls12, sicct-tls]
+      responses:
+        "200":
+          description: bestanden
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SelfTest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "500":
+          description: nicht bestanden
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SelfTest" }
+
+  /admin/reset:
+    post:
+      tags: [Status]
+      summary: YAML-Stand wiederherstellen
+      description: Karten, Störungen, PIN-Scripts, Pairing, Herstellerprofil, strict, Einstellungen, TLS-Stand des
+        KMS, Subscriptions und Systemprotokoll wie beim Start.
+      responses:
+        "200":
+          description: die KTs danach
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Terminal" }
+
+  /admin/terminals:
+    get:
+      tags: [Terminals]
+      summary: Alle KTs mit Slots
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Terminal" }
+
+  /admin/terminals/{id}:
+    parameters:
+      - $ref: "#/components/parameters/TerminalId"
+    get:
+      tags: [Terminals]
+      summary: Ein KT
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /admin/ct-list:
+    get:
+      tags: [Terminals]
+      summary: CTM_CT_LIST, alle eHealth-KTs mit CT-Object (TAB_KON_522), auch nur angekündigte
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CtObject" }
+
+  /admin/ct-discovery:
+    post:
+      tags: [Terminals]
+      summary: TUC_KON_054 ManuallyAdded erneut für konfigurierte eHealth-KTs
+      description: Etwa für ein KT, das beim Start nicht antwortete. Mit `ctId` nur dieses KT und dessen Fehler
+        (404 nicht konfiguriert, 409 mit 4033 ff.), ohne alle konfigurierten; deren Fehler stehen dann nur im
+        Systemprotokoll (CT/CT_ADDING_ERROR). Ein neu angelegtes CT-Object bekommt das Pairing aus der YAML.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ctId: { type: string, example: KT-03 }
+      responses:
+        "200":
+          description: CTM_CT_LIST danach
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CtObject" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /admin/terminals/{id}/pairing:
+    parameters:
+      - $ref: "#/components/parameters/TerminalId"
+    post:
+      tags: [Terminals]
+      summary: TUC_KON_053 eHealth-KT pairen, danach verbunden
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                fingerprint: { type: string, description: SHA-256 von C.SMKT.AUT, vom Administrator bestätigt }
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    put:
+      tags: [Terminals]
+      summary: CT.SHARED_SECRET flüchtig setzen (KT aktiv, VALIDATE beim Verbinden)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [sharedSecret]
+              properties:
+                sharedSecret: { type: string, pattern: "^[0-9A-Fa-f]{32}$" }
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+    delete:
+      tags: [Terminals]
+      summary: Pairing löschen, Korrelation „zugewiesen“
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /admin/terminals/{id}/slots/{slot}:
+    parameters:
+      - $ref: "#/components/parameters/TerminalId"
+      - $ref: "#/components/parameters/Slot"
+    put:
+      tags: [Karten]
+      summary: Karte stecken (Fake-KT), ersetzt eine gesteckte
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  description: Dateiname oder ICCSN aus `liana.card-images` (GET /admin/images), oder absoluter Pfad
+                  example: egk-valid
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "501": { $ref: "#/components/responses/NotImplemented" }
+    delete:
+      tags: [Karten]
+      summary: Karte ziehen (Fake-KT)
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "501": { $ref: "#/components/responses/NotImplemented" }
+
+  /admin/terminals/{id}/slots/{slot}/fault:
+    parameters:
+      - $ref: "#/components/parameters/TerminalId"
+      - $ref: "#/components/parameters/Slot"
+    put:
+      tags: [Karten]
+      summary: Störung am Slot setzen (LIANA-41), ersetzt eine vorhandene
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Fault" }
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "501": { $ref: "#/components/responses/NotImplemented" }
+    delete:
+      tags: [Karten]
+      summary: Störung löschen
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "501": { $ref: "#/components/responses/NotImplemented" }
+
+  /admin/terminals/{id}/pin-script:
+    parameters:
+      - $ref: "#/components/parameters/TerminalId"
+    post:
+      tags: [Karten]
+      summary: PIN-Eingaben an das PIN-Script des Fake-KT hängen (LIANA-68)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/PinScriptEntry" }
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "501": { $ref: "#/components/responses/NotImplemented" }
+    delete:
+      tags: [Karten]
+      summary: PIN-Script leeren
+      responses:
+        "200": { $ref: "#/components/responses/Terminal" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "501": { $ref: "#/components/responses/NotImplemented" }
+
+  /admin/cards:
+    get:
+      tags: [Karten]
+      summary: CM_CARD_LIST, alle geöffneten Karten (TUC_KON_001)
+      responses:
+        "200":
+          description: in der Reihenfolge des Öffnens
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Card" }
+
+  /admin/images:
+    get:
+      tags: [Karten]
+      summary: Bekannte Kartenimages aus `liana.card-images` (LIANA-98)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Images" }
+
+  /admin/sessions:
+    get:
+      tags: [Karten]
+      summary: Kartensitzungen und verifizierte PINs, ohne PIN-Werte
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Sessions" }
+
+  /admin/log:
+    get:
+      tags: [Ereignisse]
+      summary: Systemprotokoll (TUC_KON_271)
+      parameters:
+        - { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        "200":
+          description: Einträge mit from <= time <= to
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/LogEntry" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /admin/events:
+    get:
+      tags: [Ereignisse]
+      summary: Push als Server-Sent Events (LIANA-150)
+      description: |
+        `text/event-stream`, jedes Ereignis mit `id` (`<Start>-<n>`), `event` und `data` (JSON):
+        `log` (neuer Eintrag im Systemprotokoll, Felder wie /admin/log), `card` (CARD/INSERTED, CARD/REMOVED,
+        CARD/PIN/*, CARD/SESSION/TIMEOUT: `topic`, `parameters`), `terminal` (`id`, `cause`, `terminal` wie
+        GET /admin/terminals/{id}), `state` (`cause` vendor, settings, reset oder kms; `vendor`, `settings`),
+        `subscription` (`cause` subscribe, unsubscribe, renew, delivery, auto-unsubscribe, expired oder reset; `id`,
+        LIANA-151), `session` (`sessionId`, `open`: Kartensitzung begonnen oder beendet, LIANA-151).
+        Mit `Last-Event-ID` (Header oder Query `lastEventId`) zuerst alle späteren Ereignisse aus dem Ringpuffer
+        (`liana.admin.events.buffer`); liegt die ID nicht mehr darin oder stammt sie aus einem früheren Start,
+        `resync` (`reason`), danach neu laden. Heartbeat als Kommentar alle `liana.admin.events.heartbeat` (15 s).
+      parameters:
+        - { name: Last-Event-ID, in: header, required: false, schema: { type: string } }
+        - { name: lastEventId, in: query, required: false, schema: { type: string } }
+      responses:
+        "200":
+          description: Stream bis zum Abbruch
+          content:
+            text/event-stream: {}
+        "503":
+          description: mehr als `liana.admin.events.max-streams` (16) gleichzeitige Streams
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /admin/subscriptions:
+    get:
+      tags: [Ereignisse]
+      summary: Subscriptions (TIP1-A_4594) mit letzter CETP-Zustellung
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Subscription" }
+
+  /admin/tls:
+    get:
+      tags: [TLS und PKI]
+      summary: TLS der Konnektor-Schnittstelle (TAB_KON_506-01), lesend
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tls" }
+
+  /admin/pki:
+    get:
+      tags: [TLS und PKI]
+      summary: Vertrauensraum, TSL-Stand (TUC_KON_037)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Pki" }
+
+  /admin/vendor:
+    get:
+      tags: [Profil und Einstellungen]
+      summary: Herstellerprofil und strict
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Vendor" }
+    put:
+      tags: [Profil und Einstellungen]
+      summary: Herstellerprofil und/oder strict umschalten
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vendor: { type: string, enum: [neutral, KOCO, RISE, SECUNET, EHEX, CGM] }
+                strict: { type: boolean }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Vendor" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /admin/deviations:
+    get:
+      tags: [Profil und Einstellungen]
+      summary: Bekannte Abweichungen der Gegenstellen (LIANA-126)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Deviations" }
+
+  /admin/vsdm/online-checks:
+    get:
+      tags: [Profil und Einstellungen]
+      summary: Onlineprüfung des Fachmoduls VSDM, letztes Ergebnis je eGK (LIANA-141)
+      description: >-
+        Kette der Quellen aus liana.vsdm.online.sources (ufs, fixed), strict und MGM_LU_ONLINE; je eGK (nach ICCSN)
+        die letzte Prüfung von ReadVSD mit PerformOnlineCheck=true. source ist die antwortende Stufe, spec der
+        Spec-Rückfall (Ergebnis 3 ohne Prüfziffer); skipped sagt, warum die Stufen davor nicht geantwortet haben.
+        Zurücksetzen leert die Liste und fragt übersprungene UFS-Endpunkte wieder.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VsdmOnlineChecks" }
+
+  /admin/settings:
+    get:
+      tags: [Profil und Einstellungen]
+      summary: Management-Einstellungen unabhängig vom Profil
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+    put:
+      tags: [Profil und Einstellungen]
+      summary: CARD_SESSION_TIMEOUT und/oder MGM_LU_ONLINE flüchtig setzen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                cardSessionTimeout: { type: integer, minimum: 10, maximum: 180, description: Sekunden (TAB_KON_554) }
+                luOnline: { type: boolean, description: MGM_LU_ONLINE (TAB_KON_658) }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Settings" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /admin/operating-state:
+    get:
+      tags: [Profil und Einstellungen]
+      summary: Betriebszustand für GetResourceInformation (VPN, Transportnetz, TAB_KON_503)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OperatingState" }
+    put:
+      tags: [Profil und Einstellungen]
+      summary: Verbindungszustände flüchtig setzen, Änderungen melden OPERATIONAL_STATE/$EC (TIP1-A_4512-06)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                vpnTi: { type: boolean, description: "VPN zur TI online; false setzt EC_No_VPN_TI_Connection (A_17085)" }
+                vpnSis: { type: boolean, description: VPN zum SIS online }
+                transport: { type: boolean, description: "Transportnetz erreichbar; false setzt EC_No_Online_Connection (A_17087)" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OperatingState" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /admin/infomodel:
+    get:
+      tags: [Export]
+      summary: Mandanten, Clientsysteme, Arbeitsplätze, SM-B_Verwaltet
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Infomodel" }
+
+  /admin/clients/{id}/config.kon:
+    get:
+      tags: [Export]
+      summary: Client-Konfiguration im .kon-Format (support/kon/kon-format.md v1.0.0)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string }, description: Clientsystem }
+      responses:
+        "200":
+          description: .kon (JSON)
+          content:
+            application/json:
+              schema: { type: object }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+components:
+  parameters:
+    TerminalId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, example: KT-01 }
+    Slot:
+      name: slot
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+
+  responses:
+    Terminal:
+      description: das KT danach
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Terminal" }
+    BadRequest:
+      description: ungültiger oder fehlender Body
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: unbekanntes KT, Slot, Image, Clientsystem, Check oder Pfad
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Conflict:
+      description: TUC-Fehler mit Konnektor-Fehlercode
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotImplemented:
+      description: in LIANA nicht umgesetzt, etwa Karten an einem eHealth-KT (decision-12)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        code: { type: integer, description: Konnektor-Fehlercode bei 404/409 aus einem TUC }
+
+    Ready:
+      type: object
+      properties:
+        ready: { type: boolean }
+
+    Info:
+      type: object
+      properties:
+        product: { type: string, example: LIANA }
+        version: { type: string }
+        env: { type: string }
+        vendor: { type: string }
+        strict: { type: boolean }
+        konnektorPort: { type: integer }
+        adminPort: { type: integer }
+        terminalMode: { type: string }
+
+    SelfTest:
+      type: object
+      properties:
+        check: { type: string }
+        ok: { type: boolean }
+        detail: { type: string }
+
+    Terminal:
+      type: object
+      properties:
+        id: { type: string }
+        mode: { type: string, enum: [fake, sicct] }
+        slots:
+          type: array
+          items: { $ref: "#/components/schemas/Slot" }
+        ct: { $ref: "#/components/schemas/CtObject" }
+        display: { type: string, description: Anzeige eines Fake-KT (RequestCard, EjectCard, PIN) }
+        pinScript:
+          type: array
+          items: { $ref: "#/components/schemas/PinScriptEntry" }
+
+    Slot:
+      type: object
+      properties:
+        slot: { type: integer }
+        image: { type: string, nullable: true }
+        path: { type: string, nullable: true }
+        fault: { $ref: "#/components/schemas/Fault" }
+        cardType: { type: string, nullable: true }
+        unknownReason: { type: string, nullable: true }
+        card: { $ref: "#/components/schemas/Card" }
+
+    Card:
+      type: object
+      description: Eintrag in CM_CARD_LIST (TUC_KON_001, TAB_KON_531); nicht lesbare Werte fehlen
+      properties:
+        cardHandle: { type: string }
+        ctId: { type: string }
+        slotNo: { type: integer }
+        insertTime: { type: string, format: date-time }
+        cardType: { type: string, example: EGK }
+        iccsn: { type: string }
+        cardHolderName: { type: string }
+        kvnr: { type: string }
+        cardVersion:
+          type: object
+          additionalProperties: { type: string }
+          description: cos, objectSystem, logging, atr, gdo, keyInfo als major.minor.revision
+        certExpirationDate: { type: string, format: date }
+        unknownReason: { type: string }
+        locked: { type: boolean, description: durch eine Kartensitzung reserviert (A_25895) }
+
+    CtObject:
+      type: object
+      description: Attribute des CT-Object (TAB_KON_522), etwa CTID, MAC_ADRESS, CORRELATION, CONNECTED
+      additionalProperties: true
+
+    Fault:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [status-word, response, io-error, delay] }
+        statusWord: { type: string, pattern: "^[0-9A-Fa-f]{4}$" }
+        response: { type: string }
+        delayMs: { type: integer }
+        commandPrefix: { type: string }
+        count: { type: integer }
+
+    PinScriptEntry:
+      type: object
+      required: [outcome]
+      properties:
+        outcome: { type: string, enum: [correct, wrong, digits, cancel, timeout, puk, transport, incomplete] }
+        slotNo: { type: integer }
+        pin: { type: string, description: nur beim Schreiben mit outcome digits, nie in einer Antwort }
+
+    Images:
+      type: object
+      properties:
+        directories:
+          type: array
+          items: { type: string }
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string, example: egk-valid }
+              file: { type: string }
+              iccsn: { type: string }
+
+    Sessions:
+      type: object
+      properties:
+        cardSessions:
+          type: array
+          description: PoPP-Kartensitzungen (A_25970-01) mit Ablauf des APDU-Szenario-Timers (A_25860-01)
+          items:
+            type: object
+            properties:
+              sessionId: { type: string }
+              cardHandle: { type: string }
+              ctId: { type: string }
+              slotNo: { type: integer }
+              deadline: { type: string, format: date-time }
+              timer: { type: string, enum: [Konnektor, PoPP] }
+        verifiedPins:
+          type: array
+          description: CARDSESSION.AUTHSTATE (TUC_KON_026), nur PinRef
+          items:
+            type: object
+            properties:
+              cardHandle: { type: string }
+              mandantId: { type: string }
+              clientSystemId: { type: string }
+              pinRef: { type: string, example: PIN.SMC }
+
+    LogEntry:
+      type: object
+      properties:
+        time: { type: string, format: date-time }
+        type: { type: string }
+        severity: { type: string }
+        topic: { type: string }
+        parameters:
+          type: object
+          additionalProperties: { type: string }
+
+    Subscription:
+      type: object
+      properties:
+        id: { type: string }
+        terminationTime: { type: string, format: date-time }
+        mandantId: { type: string }
+        clientSystemId: { type: string }
+        workplaceId: { type: string }
+        userId: { type: string }
+        eventTo: { type: string, example: "cetp://192.168.1.2:7001" }
+        topic: { type: string }
+        filter: { type: string }
+        lastDelivery:
+          type: object
+          description: letzter Zustellversuch per CETP (TUC_KON_256 Schritt 6); fehlt ohne Versuch
+          properties:
+            time: { type: string, format: date-time }
+            topic: { type: string }
+            delivered: { type: boolean }
+            error: { type: string }
+
+    Tls:
+      type: object
+      properties:
+        tlsMandatory: { type: boolean, description: ANCL_TLS_MANDATORY }
+        clientAuthMandatory: { type: boolean, description: ANCL_CAUT_MANDATORY }
+        serverTls: { type: boolean }
+        port: { type: integer }
+        certificate: { type: string, description: Subject des Serverzertifikats }
+        fingerprint: { type: string, description: SHA-256 (A_24484) }
+        clientCertificates:
+          type: array
+          items: { type: string }
+          description: ANCL_CCERT_LIST
+        dvdOpen: { type: boolean, description: ANCL_DVD_OPEN }
+        eccForClientSystems: { type: boolean, description: TLS_USE_ECC_FOR_CS }
+        serverSoftwareKey: { type: boolean, description: Software-Schlüssel statt gSMC-K als Serveridentität }
+        protocol: { type: string, example: TLSv1.2 }
+        cipherSuites:
+          type: array
+          items: { type: string }
+        namedGroups:
+          type: array
+          items: { type: string }
+
+    Pki:
+      type: object
+      properties:
+        tsl:
+          type: object
+          properties:
+            file: { type: string }
+            sequenceNumber: { type: string }
+            nextUpdate: { type: string }
+            caCount: { type: integer }
+        importedCas: { type: integer }
+
+    Vendor:
+      type: object
+      properties:
+        vendor: { type: string }
+        boot: { type: string }
+        strict: { type: boolean }
+        strictBoot: { type: boolean }
+
+    Deviations:
+      type: object
+      properties:
+        strict: { type: boolean }
+        deviations:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              peer: { type: string }
+              spec: { type: string }
+              observed: { type: string }
+              fallback: { type: string }
+
+    VsdmOnlineChecks:
+      type: object
+      properties:
+        sources: { type: array, items: { type: string, enum: [ufs, fixed] } }
+        strict: { type: boolean, description: "fixed fällt mit strict aus der Kette" }
+        online: { type: boolean, description: "MGM_LU_ONLINE; Disabled fragt keine Quelle" }
+        checks:
+          type: array
+          items:
+            type: object
+            properties:
+              time: { type: string, format: date-time }
+              cardHandle: { type: string }
+              iccsn: { type: string }
+              source: { type: string, enum: [ufs, fixed, spec] }
+              ergebnis: { type: integer, description: "Tab_FM_VSDM_05-01: 2 keine Aktualisierung, 3 technisch nicht möglich" }
+              errorCode: { type: integer, nullable: true }
+              pruefziffer: { type: string, format: byte, nullable: true }
+              detail: { type: string }
+              skipped: { type: array, items: { type: string } }
+
+    Settings:
+      type: object
+      properties:
+        cardSessionTimeout: { type: integer, description: CARD_SESSION_TIMEOUT in Sekunden (TAB_KON_554) }
+        cardSessionTimeoutBoot: { type: integer, description: Wert aus der YAML }
+        luOnline: { type: boolean, description: MGM_LU_ONLINE (TAB_KON_658) }
+
+    OperatingState:
+      type: object
+      properties:
+        vpnTi: { $ref: "#/components/schemas/Connection" }
+        vpnSis: { $ref: "#/components/schemas/Connection" }
+        transport: { $ref: "#/components/schemas/Connection" }
+        errorStates:
+          type: array
+          items:
+            type: object
+            properties:
+              condition: { type: string, description: ErrorCondition nach TAB_KON_503 }
+              severity: { type: string, enum: [Info, Warning, Error, Fatal] }
+              type: { type: string, enum: [Op, Sec] }
+              value: { type: boolean }
+              validFrom: { type: string, format: date-time }
+
+    Connection:
+      type: object
+      properties:
+        online: { type: boolean }
+        since: { type: string, format: date-time, description: Zeitpunkt der letzten Änderung }
+
+    Infomodel:
+      type: object
+      properties:
+        mandants:
+          type: array
+          items: { type: string }
+        clientSystems:
+          type: array
+          items: { type: string }
+        workplaces:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string }
+              mandants: { type: array, items: { type: string } }
+              clientSystems: { type: array, items: { type: string } }
+              terminals: { type: array, items: { type: string } }
+        smbVerwaltet:
+          type: array
+          items:
+            type: object
+            properties:
+              iccsn: { type: string }
+              mandants: { type: array, items: { type: string } }

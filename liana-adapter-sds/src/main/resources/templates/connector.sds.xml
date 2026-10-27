@@ -1,0 +1,45 @@
+{@de.gematik.liana.adapter.sds.ServiceDirectory sds}
+<?xml version="1.0" encoding="UTF-8"?>
+<CONN:ConnectorServices xmlns:CONN="http://ws.gematik.de/conn/ServiceDirectory/v3.1"
+    xmlns:SI="http://ws.gematik.de/conn/ServiceInformation/v2.0"
+    xmlns:PI="http://ws.gematik.de/int/version/ProductInformation/v1.1">
+  <PI:ProductInformation>
+    <PI:InformationDate>{sds.informationDate}</PI:InformationDate>
+    <PI:ProductTypeInformation>
+      <PI:ProductType>Konnektor</PI:ProductType>
+      <PI:ProductTypeVersion>{sds.productTypeVersion}</PI:ProductTypeVersion>
+    </PI:ProductTypeInformation>
+    <PI:ProductIdentification>
+      <PI:ProductVendorID>{sds.productVendorId}</PI:ProductVendorID>
+      <PI:ProductCode>LIANA</PI:ProductCode>
+      <PI:ProductVersion>
+        <PI:Local>
+          <PI:HWVersion>1.0.0</PI:HWVersion>
+          <PI:FWVersion>{sds.firmwareVersion}</PI:FWVersion>
+        </PI:Local>
+      </PI:ProductVersion>
+    </PI:ProductIdentification>
+    <PI:ProductMiscellaneous>
+      <PI:ProductVendorName>gematik</PI:ProductVendorName>
+      <PI:ProductName>LIANA Konnektor-Simulator</PI:ProductName>
+    </PI:ProductMiscellaneous>
+  </PI:ProductInformation>
+  <CONN:TLSMandatory>{sds.tlsMandatory}</CONN:TLSMandatory>
+  <CONN:ClientAutMandatory>{sds.clientAuthMandatory}</CONN:ClientAutMandatory>
+  <SI:ServiceInformation>
+    {#for service in sds.services}
+    <SI:Service Name="{service.name}">
+      <SI:Abstract>{service.description}</SI:Abstract>
+      <SI:Versions>
+        {#for version in service.versions}
+        <SI:Version TargetNamespace="{version.targetNamespace}" Version="{version.version}">
+          <SI:Abstract>{service.name} {version.version}</SI:Abstract>
+          <SI:Endpoint Location="{service.location}"/>
+          <SI:EndpointTLS Location="{service.tlsLocation}"/>
+        </SI:Version>
+        {/for}
+      </SI:Versions>
+    </SI:Service>
+    {/for}
+  </SI:ServiceInformation>
+</CONN:ConnectorServices>

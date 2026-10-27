@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONN:ConnectorServices xmlns:CONN="http://ws.gematik.de/conn/ServiceDirectory/v3.1"
+    xmlns:SI="http://ws.gematik.de/conn/ServiceInformation/v2.0"
+    xmlns:PI="http://ws.gematik.de/int/version/ProductInformation/v1.1">
+  <PI:ProductInformation>
+    <PI:InformationDate>2026-10-14T13:40:00Z</PI:InformationDate>
+    <PI:ProductTypeInformation>
+      <PI:ProductType>Konnektor</PI:ProductType>
+      <PI:ProductTypeVersion>6.0.4</PI:ProductTypeVersion>
+    </PI:ProductTypeInformation>
+    <PI:ProductIdentification>
+      <PI:ProductVendorID>LIANA</PI:ProductVendorID>
+      <PI:ProductCode>LIANA</PI:ProductCode>
+      <PI:ProductVersion>
+        <PI:Local>
+          <PI:HWVersion>1.0.0</PI:HWVersion>
+          <PI:FWVersion>0.5.21-SNAPSHOT</PI:FWVersion>
+        </PI:Local>
+      </PI:ProductVersion>
+    </PI:ProductIdentification>
+    <PI:ProductMiscellaneous>
+      <PI:ProductVendorName>gematik</PI:ProductVendorName>
+      <PI:ProductName>LIANA Konnektor-Simulator</PI:ProductName>
+    </PI:ProductMiscellaneous>
+  </PI:ProductInformation>
+  <CONN:TLSMandatory>false</CONN:TLSMandatory>
+  <CONN:ClientAutMandatory>false</CONN:ClientAutMandatory>
+  <SI:ServiceInformation>
+    <SI:Service Name="EventService">
+      <SI:Abstract>Ereignisdienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/EventService/v7.2" Version="7.2.0">
+          <SI:Abstract>EventService 7.2.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/EventService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/EventService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+    <SI:Service Name="CardTerminalService">
+      <SI:Abstract>Kartenterminaldienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardTerminalService/v1.1" Version="1.1.0">
+          <SI:Abstract>CardTerminalService 1.1.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/CardTerminalService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/CardTerminalService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+    <SI:Service Name="CardService">
+      <SI:Abstract>Kartendienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardService/v8.1" Version="8.1.0">
+          <SI:Abstract>CardService 8.1.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/CardService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/CardService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardService/v8.1" Version="8.1.1">
+          <SI:Abstract>CardService 8.1.1</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/CardService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/CardService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardService/v8.1" Version="8.1.2">
+          <SI:Abstract>CardService 8.1.2</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/CardService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/CardService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardService/v8.2" Version="8.2.0">
+          <SI:Abstract>CardService 8.2.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/CardService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/CardService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardService/v8.2" Version="8.2.1">
+          <SI:Abstract>CardService 8.2.1</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/CardService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/CardService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+    <SI:Service Name="CertificateService">
+      <SI:Abstract>Zertifikatsdienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CertificateService/v6.0" Version="6.0.0">
+          <SI:Abstract>CertificateService 6.0.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/CertificateService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/CertificateService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CertificateService/v6.0" Version="6.0.1">
+          <SI:Abstract>CertificateService 6.0.1</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/CertificateService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/CertificateService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CertificateService/v6.0" Version="6.0.2">
+          <SI:Abstract>CertificateService 6.0.2</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/CertificateService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/CertificateService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+    <SI:Service Name="AuthSignatureService">
+      <SI:Abstract>Authentifizierungsdienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.4" Version="7.4.0">
+          <SI:Abstract>AuthSignatureService 7.4.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/AuthSignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/AuthSignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.4" Version="7.4.1">
+          <SI:Abstract>AuthSignatureService 7.4.1</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/AuthSignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/AuthSignatureService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+    <SI:Service Name="SignatureService">
+      <SI:Abstract>Signaturdienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.4" Version="7.4.0">
+          <SI:Abstract>SignatureService 7.4.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.4" Version="7.4.1">
+          <SI:Abstract>SignatureService 7.4.1</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.4" Version="7.4.2">
+          <SI:Abstract>SignatureService 7.4.2</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.4" Version="7.4.3">
+          <SI:Abstract>SignatureService 7.4.3</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.5" Version="7.5.0">
+          <SI:Abstract>SignatureService 7.5.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.5" Version="7.5.1">
+          <SI:Abstract>SignatureService 7.5.1</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.5" Version="7.5.2">
+          <SI:Abstract>SignatureService 7.5.2</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.5" Version="7.5.3">
+          <SI:Abstract>SignatureService 7.5.3</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.5" Version="7.5.4">
+          <SI:Abstract>SignatureService 7.5.4</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.5" Version="7.5.5">
+          <SI:Abstract>SignatureService 7.5.5</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/SignatureService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/SignatureService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+    <SI:Service Name="EncryptionService">
+      <SI:Abstract>Verschlüsselungsdienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/EncryptionService/v6.1" Version="6.1.0">
+          <SI:Abstract>EncryptionService 6.1.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/EncryptionService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/EncryptionService"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/EncryptionService/v6.1" Version="6.1.1">
+          <SI:Abstract>EncryptionService 6.1.1</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/EncryptionService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/EncryptionService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+    <SI:Service Name="VSDService">
+      <SI:Abstract>VSD von eGK lesen</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/vsds/VSDService/v5.2" Version="5.2.0">
+          <SI:Abstract>VSDService 5.2.0</SI:Abstract>
+          <SI:Endpoint Location="http://localhost:8080/ws/VSDService"/>
+          <SI:EndpointTLS Location="https://localhost:8443/ws/VSDService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+  </SI:ServiceInformation>
+</CONN:ConnectorServices>

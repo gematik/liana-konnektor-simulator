@@ -1,0 +1,1 @@
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Header/><SOAP-ENV:Body><CT:EjectCardResponse xmlns:CONN="http://ws.gematik.de/conn/ConnectorCommon/v5.0" xmlns:CT="http://ws.gematik.de/conn/CardTerminalService/v1.1"><CONN:Status><CONN:Result>OK</CONN:Result></CONN:Status></CT:EjectCardResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>

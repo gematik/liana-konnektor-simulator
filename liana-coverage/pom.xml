@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>de.gematik.liana</groupId>
+    <artifactId>liana-parent</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>liana-coverage</artifactId>
+  <packaging>pom</packaging>
+  <name>LIANA Testabdeckung</name>
+
+  <properties>
+    <!-- not deployed to Nexus, only the client artifacts are (LIANA-142) -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+  </properties>
+
+  <!-- LIANA-200: all modules whose tests or classes count towards the coverage. Tests in liana-app also cover
+       liana-kern and the adapters; only the aggregated report shows that. -->
+  <dependencies>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-kern</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-fake-terminal</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-sicct</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-cetp</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-vsdm</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-sds</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-soap</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-app</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-trace-tests</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-contract</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>konnektor-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-control-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>konnektor-client-conformance</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>jacoco-aggregate</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report-aggregate</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

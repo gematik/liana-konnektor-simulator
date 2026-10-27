@@ -1,0 +1,34 @@
+# The one Tiger proxy of the PS integration (tools/testhub/ps-proxy.sh, LIANA-183, a single proxy since LIANA-189.03): accepts
+# HTTP and HTTPS from the PS on the same port and always goes to LIANA via HTTPS (routes do not see the protocol).
+# Towards the PS it authenticates in TLS with an ID.AK.AUT of the same Komp-CA as LIANA (ps-proxy.sh issues it with
+# the address of the PS machine in the SAN), the trustStore from the .kon export is enough for the PS. Towards LIANA it shows
+# the p12 of the PS (PS_CLIENT_P12, LIANA-186), otherwise the client certificate CS1 (support/pki/clients).
+# LIANA sends the card APDUs to the admin port (liana.trace.push-url); WebUI and export (webui/getMessagesAsHtmlPage,
+# webui/trafficLog.tgr) thus show all traffic. It continuously writes each session (ps-proxy.sh up to down) to
+# a .tgr of its own (PS_SESSION_FILE, LIANA-185).
+tigerProxy:
+  name: ps
+  adminPort: 8080
+  proxyPort: 7000
+  proxyRoutes:
+    - from: /
+      to: ${PS_UPSTREAM_HTTPS:https://liana-ps-liana:8443}
+  tls:
+    serverIdentity: "tiger-config/server.p12;liana"
+    forwardMutualTlsIdentity: "tiger-config/client.p12;liana"
+    # TLS keys of both sides in the NSS key log format for Wireshark, for all sessions in one file
+    masterSecretsFile: ${PS_KEYLOG_FILE}
+  fileSaveInfo:
+    writeToFile: true
+    filename: ${PS_SESSION_FILE}
+    clearFileOnBoot: false          # ps-proxy.sh creates the file empty and thereby reserves the number
+  # Parsers beyond the default (LIANA-185): sicct for the APDUs from the traffic push, X509/X500/asn1 for
+  # certificates (ReadCardCertificate, VerifyCertificate) and CMS signatures, OCSP for IncludeRevocationInfo,
+  # b64gzip for the Prüfungsnachweis of ReadVSD
+  activateRbelParsingFor:
+    - sicct
+    - X509
+    - X500
+    - asn1
+    - OCSP
+    - b64gzip

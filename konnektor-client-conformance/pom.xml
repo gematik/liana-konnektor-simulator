@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>de.gematik.liana</groupId>
+    <artifactId>liana-parent</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>konnektor-client-conformance</artifactId>
+  <name>LIANA Konformitätssuite Konnektor-Client</name>
+
+  <properties>
+    <!-- not deployed to Nexus, only the client artifacts are (LIANA-142) -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+    <tiger.version>4.4.5</tiger.version>
+    <!-- Suite: ./mvnw verify -pl konnektor-client-conformance -am -DskipITs=false -DTI_TEST_KON_PATH=<.kon>;
+         without a .kon the ITs are disabled. Empty means: from the environment, or off. -->
+    <TI_TEST_KON_PATH />
+    <conformance.record />
+    <conformance.interactive />
+    <conformance.liana-admin />
+    <conformance.destructive />
+  </properties>
+
+  <!-- Conformance suite against any .kon (LIANA-139). Runs against real Konnektoren, therefore also without
+       LIANA's runtime; not published (LIANA-142). -->
+  <dependencies>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>konnektor-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- LIANA-134: switch the vendor profile of the LIANA under test (conformance.liana-admin) -->
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-control-client</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- recording via the Tiger proxy (conformance.record), traces as .tgr (decision-9) -->
+    <dependency>
+      <groupId>de.gematik.test</groupId>
+      <artifactId>tiger-proxy</artifactId>
+      <version>${tiger.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- no JBoss LogManager: the client modules do not know Quarkus -->
+          <systemPropertyVariables combine.self="override" />
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables combine.self="override">
+            <TI_TEST_KON_PATH>${TI_TEST_KON_PATH}</TI_TEST_KON_PATH>
+            <conformance.record>${conformance.record}</conformance.record>
+            <conformance.interactive>${conformance.interactive}</conformance.interactive>
+            <conformance.liana-admin>${conformance.liana-admin}</conformance.liana-admin>
+            <conformance.destructive>${conformance.destructive}</conformance.destructive>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

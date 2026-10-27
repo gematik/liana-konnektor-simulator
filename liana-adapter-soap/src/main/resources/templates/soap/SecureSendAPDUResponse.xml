@@ -1,0 +1,4 @@
+{@java.util.List<java.lang.String> responseApdus}
+{@java.lang.Long timeSpan}
+{@de.gematik.liana.adapter.soap.GerrorView warning}
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Header/><SOAP-ENV:Body><CARD:SecureSendAPDUResponse xmlns:CONN="http://ws.gematik.de/conn/ConnectorCommon/v5.0" xmlns:CARD="http://ws.gematik.de/conn/CardService/v8.2"><CONN:Status>{#if warning}<CONN:Result>Warning</CONN:Result>{#include soap/Gerror.xml error=warning /}{#else}<CONN:Result>OK</CONN:Result>{/if}</CONN:Status><CARD:SignedScenarioResponse><CARD:ResponseApduList>{#for apdu in responseApdus}<CARD:ResponseApdu>{apdu}</CARD:ResponseApdu>{/for}</CARD:ResponseApduList><CARD:TimeSpan>{timeSpan}</CARD:TimeSpan></CARD:SignedScenarioResponse></CARD:SecureSendAPDUResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>

@@ -1,0 +1,19 @@
+
+ {
+    "type": "StandardScenario",
+    "version": "1.0.0",
+    "clientSessionId": ".*",
+    "sequenceCounter": 0,
+    "timeSpan": 10000,
+    "steps": [
+      {
+        "commandApdu": "00A4040C07D2760001448000",
+        "expectedStatusWords": ["9000"]
+      },
+      {
+        "commandApdu": "00B0910000",
+        "expectedStatusWords": ["9000", "6281"]
+      }
+    ]
+  }
+

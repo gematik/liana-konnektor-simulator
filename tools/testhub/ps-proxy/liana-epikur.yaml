@@ -1,0 +1,25 @@
+# LIANA for the PS integration with Epikur (LIANA-185): PS_LIANA_CONFIG=tools/testhub/ps-proxy/liana-epikur.yaml.
+# Adds the Aufrufkontext of Epikur to the boot state of the image (mounted as /work/config/application.yaml).
+# Epikur comes first: liana.tls.client-certs belong to the first Clientsystem, the .kon export is at
+# /admin/clients/Epikur/config.kon. M1/CS1/WP1 stay for cross-checks with curl or konnektor-client.
+liana:
+  vendor: SECUNET               # like the reference Konnektor in the PS lab (secunet konnektor 2.0.0)
+  infomodel:
+    mandants: [MEpikur, M1]
+    client-systems: [Epikur, CS1]
+    workplaces:
+      - id: ap2
+        mandants: [MEpikur]
+        client-systems: [Epikur]
+        terminals: [KT-01, KT-02]
+      - id: WP1
+        mandants: [M1]
+        client-systems: [CS1]
+        terminals: [KT-01, KT-02]
+  # gSMC-KT as a card in KT-01/3 like in the card terminal of the PS lab (Cherry ST-1506 at the secunet Konnektor: SMC-KT in
+  # slot 3, in GetCards and CheckCertificateExpiration, LIANA-188)
+  infrastructure:
+    terminals:
+      KT-01:
+        slots:
+          3: gsmckt-root6

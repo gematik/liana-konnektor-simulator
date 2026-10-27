@@ -1,0 +1,16 @@
+# Docker 29.x rejects the Testhub's volume subpath mount on /etc/resolv.conf ("safe-mount … not a directory").
+# Replacement for all services with this mount: popp.sh writes the Canopy IP to a file that is bind-mounted here
+# (same target → replaces the entry). A fix in the Testhub itself is not possible: Compose creates the services before
+# resolv-writer runs, and a bind mount needs the file when it is created. popp.sh loads this overlay only from
+# Docker 29 on. popp.sh does not start vsdm-client and vsdm-zeta-pdp; they are here for the full
+# stack (docker compose … --profile full up). The service liana needs no overlay, it uses the Docker resolver.
+x-resolv: &resolv
+  volumes:
+    - type: bind
+      source: ${LIANA_RESOLV_CONF:?LIANA_RESOLV_CONF fehlt – tools/testhub/popp.sh setzt sie}
+      target: /etc/resolv.conf
+      read_only: true
+services:
+  popp-client: *resolv
+  vsdm-client: *resolv
+  vsdm-zeta-pdp: *resolv

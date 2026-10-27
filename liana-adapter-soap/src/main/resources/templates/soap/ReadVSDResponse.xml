@@ -1,0 +1,7 @@
+{@java.lang.String pd}
+{@java.lang.String vd}
+{@java.lang.String status}
+{@java.lang.String timestamp}
+{@java.lang.String version}
+{@java.lang.String pruefungsnachweis}
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Header/><SOAP-ENV:Body><VSD:ReadVSDResponse xmlns:VSD="http://ws.gematik.de/conn/vsds/VSDService/v5.2"><VSD:PersoenlicheVersichertendaten>{pd}</VSD:PersoenlicheVersichertendaten><VSD:AllgemeineVersicherungsdaten>{vd}</VSD:AllgemeineVersicherungsdaten><VSD:VSD_Status><VSD:Status>{status}</VSD:Status><VSD:Timestamp>{timestamp}</VSD:Timestamp><VSD:Version>{version}</VSD:Version></VSD:VSD_Status>{#if pruefungsnachweis}<VSD:Pruefungsnachweis>{pruefungsnachweis}</VSD:Pruefungsnachweis>{/if}</VSD:ReadVSDResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>

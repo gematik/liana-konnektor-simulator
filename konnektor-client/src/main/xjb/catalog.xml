@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LIANA-132: EventService and CardTerminalService import CardService.xsd (8.1.0); in the namespace v8.1 there is
+     only one binding, built from 8.1.3 (WSDL 8.1.2). The plugin keeps the system ID CardService.xsd, so 8.1.3
+     itself is not in the schemaIncludes, and bindings.xjb names CardService.xsd. Offline: DOCTYPE of the W3C schemas mapped to an empty DTD. -->
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+  <systemSuffix systemIdSuffix="conn/CardService.xsd" uri="../../../../support/schemas/conn/CardService_v8_1_3.xsd"/>
+  <uriSuffix uriSuffix="conn/CardService.xsd" uri="../../../../support/schemas/conn/CardService_v8_1_3.xsd"/>
+  <public publicId="-//W3C//DTD XMLSchema 200102//EN" uri="empty.dtd"/>
+  <systemSuffix systemIdSuffix="XMLSchema.dtd" uri="empty.dtd"/>
+</catalog>

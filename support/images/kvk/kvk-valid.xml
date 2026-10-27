@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Krankenversichertenkarte (KVK) for the fake KT (LIANA-113), invented data, no real person and no real
+  Kostenträger. Memory card without COS: LIANA emulates it in the fake KT itself (KvkCard), not kartos.
+
+  atr:      ATR of a synchronous card (ISO 7816-10, H1-H4). The values of the KVK spec (section 6.2) are not available;
+            LIANA recognises the KVK by the synchronous ATR (no TS 3B/3F) and the KVK application, not by these bytes.
+  template: VersichertenDatenTemplate from tag '60' up to the check byte, as READ BINARY from offset 0000 returns it
+            (KBV-Merkblatt KVK 2.05, 1.1 and 4.2):
+              60 7F  VersichertenDatenTemplate, 127 bytes
+              80 0F  KrankenKassenName         Testkasse LIANA
+              81 07  KrankenKassenNummer       1234567
+              8F 05  VKNR                      99999
+              82 0A  VersichertenNummer        1234567890
+              83 04  VersichertenStatus        1000
+              90 01  StatusErgänzung           1
+              84 03  Titel                     Dr.
+              85 05  VorName                   Erika
+              87 0A  FamilienName              Mustermann
+              88 08  GeburtsDatum              12081964
+              89 0D  StraßenName&HausNummer    Teststrasse 1
+              8B 05  Postleitzahl              10117
+              8C 06  OrtsName                  Berlin
+              8D 04  GültigkeitsDatum          1230 (December 2030)
+              8E 01  PrüfSumme                 B3 (XOR from '60' up to and including '8E 01')
+-->
+<kvk atr="A2131091">
+  <template>
+    607F800F546573746B61737365204C49414E418107313233343536378F053939393939820A31323334353637383930830431303030
+    900131840344722E85054572696B61870A4D75737465726D616E6E88083132303831393634890D54657374737472617373652031
+    8B0531303131378C064265726C696E8D04313233308E01B3
+  </template>
+</kvk>

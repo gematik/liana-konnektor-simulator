@@ -1,0 +1,24 @@
+# Build context as an allowlist (LIANA-14): only what the dev and native images need.
+*
+!pom.xml
+!license.header.txt
+!mvnw
+!.mvn/wrapper/maven-wrapper.properties
+!liana-*/pom.xml
+!konnektor-client*/pom.xml
+!liana-kern/src/main
+!liana-adapter-*/src/main
+!liana-app/src/main
+!liana-contract/src/main
+!support/schemas
+!konnektor-client/src/main/xjb
+!liana-app/target/*-runner
+!support/images
+!support/pki/tsl
+!tools/pki/tsl-fetch.sh
+!support/pki/server/ak-aut-*.p12
+!support/pki/server/sak-aut-*.p12
+!support/pki/clients/cs1-*.pem
+!tools/kartos/kartos-linux-*
+!tools/kartos/LICENSE
+!tools/kartos/THIRD-PARTY-NOTICES.txt
