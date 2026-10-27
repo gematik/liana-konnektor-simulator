@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- LIANA-132: one package per namespace under de.gematik.liana.konnektor.ws, so that the bindings do not collide
+     with de.gematik.ws.* from vendor libraries (decision-016). Files from support/schemas;
+     CardService.xsd stands for the content of 8.1.3 (catalog.xml). -->
+<jaxb:bindings xmlns:jaxb="https://jakarta.ee/xml/ns/jaxb" xmlns:xs="http://www.w3.org/2001/XMLSchema" version="3.0">
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/CardServiceCommon.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.cardservicecommon.v2_0"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/CardService.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.cardservice.v8_1"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/CardService_v8_2_1.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.cardservice.v8_2"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/CardTerminalInfo.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.cardterminalinfo.v8_0"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/CardTerminalService.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.cardterminalservice.v1_1"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/CertificateServiceCommon.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.certificateservicecommon.v2_0"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/CertificateService_v6_0_2.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.certificateservice.v6_0"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/ConnectorCommon.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.connectorcommon.v5_0"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/ConnectorContext.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.connectorcontext.v2_0"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/EncryptionService_v6_1_2.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.encryptionservice.v6_1"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/EventService.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.eventservice.v7_2"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/ServiceDirectory.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.servicedirectory.v3_1"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/ServiceInformation.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.serviceinformation.v2_0"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/SignatureService_V7_4_5.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.signatureservice.v7_4"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/SignatureService_V7_5_6.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.signatureservice.v7_5"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/conn/vsds/VSDService.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.conn.vsds.vsdservice.v5_2"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/XAdES.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.xades.v1_3_2"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/oasis-dss-core-schema-v1.0-os.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.dss.core"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/oasis-dssx-1.0-profiles-sigpolicy-schema-cd01.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.dss.sigpolicy"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/oasis-dssx-1.0-profiles-vr-cd1.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.dss.vr"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/oasis-sstc-saml-schema-assertion-1.1.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.saml.v1"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/saml-schema-assertion-2.0.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.saml.v2"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/tsl.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.tsl.v2"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/xenc-schema.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.xmlenc"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/xml.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.xml"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/ext/xmldsig-core-schema.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.ext.xmldsig"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/tel/error/TelematikError.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.tel.error.v2_0"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+  <jaxb:bindings schemaLocation="../../../../support/schemas/tel/version/ProductInformation.xsd" node="/xs:schema">
+    <jaxb:schemaBindings><jaxb:package name="de.gematik.liana.konnektor.ws.tel.version.productinformation.v1_1"/></jaxb:schemaBindings>
+  </jaxb:bindings>
+</jaxb:bindings>

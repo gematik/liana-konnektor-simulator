@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="ISO-8859-15" standalone="no"?><ns2:NFD_Document xmlns="http://ws.gematik.de/fa/nfds/common/NFDM_Common/v1.1" xmlns:ns2="http://ws.gematik.de/fa/nfds/NFD_Document/v1.4" xmlns:ns3="http://www.w3.org/2000/09/xmldsig#" NFD_Version="1.4.0">
+    <ns2:Notfalldaten ID="Notfalldaten" ID_NFD="1.2.276.0.76.7.8" NFD_letzte_Aktualisierung_date="2018-12-19" NFD_letzte_Aktualisierung_time="11:41:00.221">
+        <ns2:NFD_Versicherter>
+            <Versicherter>
+                <Versicherten_ID>M542994438</Versicherten_ID>
+                <Geburtsdatum>19700606</Geburtsdatum>
+                <Vorname>Sarah</Vorname>
+                <Nachname>Mustermann</Nachname>
+                <Vorsatzwort>von</Vorsatzwort>
+                <Namenszusatz>Freifrau</Namenszusatz>
+                <Titel>Prof.</Titel>
+                <Geschlecht>W</Geschlecht>
+            </Versicherter>
+            <ns2:NFD_Behandelnder_Arzt_Institution BAI_Art="Arzt">
+                <ns2:NFD_BAI_Arzt_Nachname>Müller-Holzscheit</ns2:NFD_BAI_Arzt_Nachname>
+                <ns2:NFD_BAI_Arzt_Vorname>Marcello-Bernhardino</ns2:NFD_BAI_Arzt_Vorname>
+                <ns2:NFD_BAI_Institution_Bezeichnung>Charite</ns2:NFD_BAI_Institution_Bezeichnung>
+                <ns2:NFD_BAI_Arzt_Bezeichnung>Oberarzt</ns2:NFD_BAI_Arzt_Bezeichnung>
+                <ns2:NFD_BAI_Adresse>
+                    <Adresse>
+                        <Postleitzahl>98765</Postleitzahl>
+                        <Ort>Oberstubbling</Ort>
+                        <Strasse>Bergstr.</Strasse>
+                        <Hausnummer>11</Hausnummer>
+                        <Anschriftenzusatz>Haupthaus</Anschriftenzusatz>
+                        <Wohnsitzlaendercode>DE</Wohnsitzlaendercode>
+                    </Adresse>
+                </ns2:NFD_BAI_Adresse>
+                <ns2:NFD_BAI_Kommunikation>
+                    <Kommunikationsdaten>
+                        <Telefonnummer>0987/6544</Telefonnummer>
+                        <Faxnummer>0987/6555</Faxnummer>
+                        <E-Mail>oberarzt@charite.com</E-Mail>
+                    </Kommunikationsdaten>
+                </ns2:NFD_BAI_Kommunikation>
+            </ns2:NFD_Behandelnder_Arzt_Institution>
+            <ns2:NFD_Benachrichtigungskontakt>
+                <ns2:NFD_BK_Bezeichnung>Tochter</ns2:NFD_BK_Bezeichnung>
+                <ns2:NFD_BK_Nachname>von Huber</ns2:NFD_BK_Nachname>
+                <ns2:NFD_BK_Vorname>Clara</ns2:NFD_BK_Vorname>
+                <ns2:NFD_BK_Kommunikation>
+                    <Kommunikationsdaten>
+                        <Telefonnummer>0987/543</Telefonnummer>
+                        <Faxnummer>0987/555</Faxnummer>
+                        <E-Mail>clara.huber@charite.de</E-Mail>
+                    </Kommunikationsdaten>
+                </ns2:NFD_BK_Kommunikation>
+            </ns2:NFD_Benachrichtigungskontakt>
+            <ns2:NFD_Versicherter_Kommunikation>
+                <Kommunikationsdaten>
+                    <Telefonnummer>0987/65412</Telefonnummer>
+                    <Faxnummer>0987/65444</Faxnummer>
+                    <E-Mail>sarah@mustermann.de</E-Mail>
+                </Kommunikationsdaten>
+            </ns2:NFD_Versicherter_Kommunikation>
+        </ns2:NFD_Versicherter>
+        <ns2:NFD_Versicherter_Einwilligung>
+            <ns2:NFD_VE_Arzt_Nachname>Meyer</ns2:NFD_VE_Arzt_Nachname>
+            <ns2:NFD_VE_Arzt_Vorname>Eberhard</ns2:NFD_VE_Arzt_Vorname>
+            <ns2:NFD_VE_Adresse>
+                <Adresse>
+                    <Postleitzahl>54321</Postleitzahl>
+                    <Ort>Hannover</Ort>
+                    <Strasse>Bahnhofstr.</Strasse>
+                    <Hausnummer>13</Hausnummer>
+                    <Anschriftenzusatz>Vorderhaus</Anschriftenzusatz>
+                    <Wohnsitzlaendercode>DE</Wohnsitzlaendercode>
+                </Adresse>
+            </ns2:NFD_VE_Adresse>
+        </ns2:NFD_Versicherter_Einwilligung>
+        <ns2:NFD_Befunddaten>
+            <ns2:Besondere_Hinweise>
+                <ns2:Schwangerschaft>
+                    <ns2:Entbindungstermin_Errechnet>2019-08-14</ns2:Entbindungstermin_Errechnet>
+                    <ns2:Schwangerschaft>1</ns2:Schwangerschaft>
+                    <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                        <ns2:DI_Arzt>
+                            <ns2:DI_Arzt_Name>a</ns2:DI_Arzt_Name>
+                            <ns2:DI_Arzt_Fachgebiet>Gynäkologe</ns2:DI_Arzt_Fachgebiet>
+                            <ns2:DI_Arzt_Ort>Hannover</ns2:DI_Arzt_Ort>
+                        </ns2:DI_Arzt>
+                    </ns2:diagnostiziert_indiziert>
+                </ns2:Schwangerschaft>
+                <ns2:Implantate>
+                    <ns2:Datum_Implantation>19981102</ns2:Datum_Implantation>
+                    <ns2:Implantate>VP-Shunt</ns2:Implantate>
+                    <ns2:Typenbezeichnung>Typ Medtronic Strata® Adjustable Pressure Valve</ns2:Typenbezeichnung>
+                    <ns2:diagnostiziert_indiziert DI_Art="Institution">
+                        <ns2:DI_Institution>
+                            <ns2:DI_Institution_Name>Uniklinikum Mannheim</ns2:DI_Institution_Name>
+                            <ns2:DI_Institution_Fachabteilung>Abteilung für Neurochirurgie</ns2:DI_Institution_Fachabteilung>
+                            <ns2:DI_Institution_Ort>Mannheim</ns2:DI_Institution_Ort>
+                        </ns2:DI_Institution>
+                    </ns2:diagnostiziert_indiziert>
+                </ns2:Implantate>
+                <ns2:Kommunikationsstoerungen>
+                    <ns2:Kommunikationsstoerung>ausgeprägte Schwerhörigkeit (Presbyakusis)</ns2:Kommunikationsstoerung>
+                    <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                        <ns2:DI_Arzt>
+                            <ns2:DI_Arzt_Name>Dr. Schneider</ns2:DI_Arzt_Name>
+                            <ns2:DI_Arzt_Fachgebiet>Allgemeinmedizin</ns2:DI_Arzt_Fachgebiet>
+                            <ns2:DI_Arzt_Ort>Thaleischweiler-Fröschen</ns2:DI_Arzt_Ort>
+                        </ns2:DI_Arzt>
+                    </ns2:diagnostiziert_indiziert>
+                </ns2:Kommunikationsstoerungen>
+                <ns2:Weglaufgefaehrdung>
+                    <ns2:Weglaufgefaehrdung>1</ns2:Weglaufgefaehrdung>
+                    <ns2:Weglaufgefaehrdung_Erlaeuterung>Patient neigt bei Wechsel der gewohnten Umgebung zur Desorientiertheit mit ausgeprägter Weglauftendenz (häufig mit erreichbaren Öffentlichen Verkehrsmitteln nach Hause!)</ns2:Weglaufgefaehrdung_Erlaeuterung>
+                    <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                        <ns2:DI_Arzt>
+                            <ns2:DI_Arzt_Name>Dr. Schneider</ns2:DI_Arzt_Name>
+                            <ns2:DI_Arzt_Fachgebiet>Allgemeinmedizin</ns2:DI_Arzt_Fachgebiet>
+                            <ns2:DI_Arzt_Ort>Thaleischweiler-Fröschen</ns2:DI_Arzt_Ort>
+                        </ns2:DI_Arzt>
+                    </ns2:diagnostiziert_indiziert>
+                </ns2:Weglaufgefaehrdung>
+                <ns2:Sonstige_Hinweise>
+                    <ns2:sonstige_Hinweise>ICD ist über telemedizinische Plattform an Plattform Merlin.net angebunden. Kontakt Dr. Herzsprung Dt. Herzzentrum, München (089 1234 56 789)</ns2:sonstige_Hinweise>
+                    <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                        <ns2:DI_Arzt>
+                            <ns2:DI_Arzt_Name>Dr. Schneider</ns2:DI_Arzt_Name>
+                            <ns2:DI_Arzt_Fachgebiet>Allgemeinmedizin</ns2:DI_Arzt_Fachgebiet>
+                            <ns2:DI_Arzt_Ort>Thaleischweiler-Fröschen</ns2:DI_Arzt_Ort>
+                        </ns2:DI_Arzt>
+                    </ns2:diagnostiziert_indiziert>
+                </ns2:Sonstige_Hinweise>
+            </ns2:Besondere_Hinweise>
+            <ns2:Allergien_Unvertraeglichkeiten>
+                <ns2:Substanz>Kontaktallergie Latex</ns2:Substanz>
+                <ns2:Reaktion>Kontaktallergie Latex</ns2:Reaktion>
+                <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                    <ns2:DI_Arzt>
+                        <ns2:DI_Arzt_Name>Dr. Schneider</ns2:DI_Arzt_Name>
+                        <ns2:DI_Arzt_Fachgebiet>Allgemeinmedizin</ns2:DI_Arzt_Fachgebiet>
+                        <ns2:DI_Arzt_Ort>Thaleischweiler-Fröschen</ns2:DI_Arzt_Ort>
+                    </ns2:DI_Arzt>
+                </ns2:diagnostiziert_indiziert>
+            </ns2:Allergien_Unvertraeglichkeiten>
+            <ns2:Allergien_Unvertraeglichkeiten>
+                <ns2:Substanz>Nahrungsmittel Nüsse</ns2:Substanz>
+                <ns2:Reaktion>Asthma, einmalige Reaktion (9/2009) bis Intubationspflichtigkeit!</ns2:Reaktion>
+                <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                    <ns2:DI_Arzt>
+                        <ns2:DI_Arzt_Name>Dr. Schneider</ns2:DI_Arzt_Name>
+                        <ns2:DI_Arzt_Fachgebiet>Allgemeinmedizin</ns2:DI_Arzt_Fachgebiet>
+                        <ns2:DI_Arzt_Ort>Thaleischweiler-Fröschen</ns2:DI_Arzt_Ort>
+                    </ns2:DI_Arzt>
+                </ns2:diagnostiziert_indiziert>
+            </ns2:Allergien_Unvertraeglichkeiten>
+            <ns2:Diagnosen>
+                <ns2:Diagnose_Code>E10.74</ns2:Diagnose_Code>
+                <ns2:Diagnose_Text>Primär insulinabhängiger Diabetes mellitus [Typ-1-Diabetes] Mit multiplen Komplikationen Mit diabetischem Fußsyndrom, nicht als entgleist bezeichnet</ns2:Diagnose_Text>
+                <ns2:Diagnose_Zeitpunkt>19101101</ns2:Diagnose_Zeitpunkt>
+                <ns2:Diagnosesicherheit>G</ns2:Diagnosesicherheit>
+                <ns2:Seitenlokalisation/>
+                <ns2:Diagnose_Code_System DC_Version="String">
+                    <ns2:Kennzeichen_Code_System>ICD 10 GM 2012</ns2:Kennzeichen_Code_System>
+                </ns2:Diagnose_Code_System>
+                <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                    <ns2:DI_Arzt>
+                        <ns2:DI_Arzt_Name>Dr. Schneider</ns2:DI_Arzt_Name>
+                        <ns2:DI_Arzt_Fachgebiet>Allgemeinmedizin</ns2:DI_Arzt_Fachgebiet>
+                        <ns2:DI_Arzt_Ort>Thaleischweiler-Fröschen</ns2:DI_Arzt_Ort>
+                    </ns2:DI_Arzt>
+                </ns2:diagnostiziert_indiziert>
+            </ns2:Diagnosen>
+            <ns2:Diagnosen>
+                <ns2:Diagnose_Code>G70.9</ns2:Diagnose_Code>
+                <ns2:Diagnose_Text>Neuromuskuläre Krankheit, nicht näher bezeichnet</ns2:Diagnose_Text>
+                <ns2:Diagnose_Zeitpunkt>20111201</ns2:Diagnose_Zeitpunkt>
+                <ns2:Diagnosesicherheit>V</ns2:Diagnosesicherheit>
+                <ns2:Seitenlokalisation/>
+                <ns2:Diagnose_Code_System DC_Version="String">
+                    <ns2:Kennzeichen_Code_System>ICD 10 GM 2012</ns2:Kennzeichen_Code_System>
+                </ns2:Diagnose_Code_System>
+                <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                    <ns2:DI_Arzt>
+                        <ns2:DI_Arzt_Name>Dr. Neuron-Oberschlund</ns2:DI_Arzt_Name>
+                        <ns2:DI_Arzt_Fachgebiet>Facharzt für Neurologie</ns2:DI_Arzt_Fachgebiet>
+                        <ns2:DI_Arzt_Ort>Kaiserslautern</ns2:DI_Arzt_Ort>
+                    </ns2:DI_Arzt>
+                </ns2:diagnostiziert_indiziert>
+            </ns2:Diagnosen>
+        </ns2:NFD_Befunddaten>
+        <ns2:NFD_Medikationseintrag>
+            <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                <ns2:DI_Arzt>
+                    <ns2:DI_Arzt_Name>Dr. Itein</ns2:DI_Arzt_Name>
+                    <ns2:DI_Arzt_Fachgebiet>Chirurgie</ns2:DI_Arzt_Fachgebiet>
+                    <ns2:DI_Arzt_Ort>Trandorf</ns2:DI_Arzt_Ort>
+                </ns2:DI_Arzt>
+            </ns2:diagnostiziert_indiziert>
+            <ns2:M a="L-THYROX HEXAL 112 Tabletten" d="1" dud="00" f="TAB" fs="1.2.276.0.76.3.1.1.5.2.40" i="morgens nüchtern mindesten 1/2 Stunde vor dem Essen mit Leitungswasser einnehmen" m="1" p="4677685" ps="BMP v2.5, Kap 8.3.1, Tab 3">
+                <ns2:W s="0,109 mg" w="Levothyroxin"/>
+            </ns2:M>
+        </ns2:NFD_Medikationseintrag>
+        <ns2:NFD_Medikationseintrag>
+            <ns2:diagnostiziert_indiziert DI_Art="Arzt">
+                <ns2:DI_Arzt>
+                    <ns2:DI_Arzt_Name>Dr. Frankenstein</ns2:DI_Arzt_Name>
+                    <ns2:DI_Arzt_Fachgebiet>Chirurgie</ns2:DI_Arzt_Fachgebiet>
+                    <ns2:DI_Arzt_Ort>Trandorf</ns2:DI_Arzt_Ort>
+                </ns2:DI_Arzt>
+            </ns2:diagnostiziert_indiziert>
+            <ns2:M a="EXFORGE HCT 10 mg/160 mg/12,5 mg Filmtabletten" d="1" dud="00" fd="Film" i="Einnahme unabhängig von den Mahlzeiten" m="1" p="5111359" ps="BMP v2.5, Kap 8.3.1, Tab 3">
+                <ns2:W s="10 mg" w="Amlodipin"/>
+                <ns2:W s="160 mg" w="Valsartan"/>
+                <ns2:W s="12,5 mg" w="Hydrochlorothiazid"/>
+            </ns2:M>
+        </ns2:NFD_Medikationseintrag>
+        <ns2:NFD_Freiwillige_Zusatzinformationen>
+            <ns2:Freiwillige_Zusatzinformationen>Blutgruppe AB Rh neg; Knochenmark-Spender (Typisierung 2011 erfolgt / DKMS)</ns2:Freiwillige_Zusatzinformationen>
+        </ns2:NFD_Freiwillige_Zusatzinformationen>
+    </ns2:Notfalldaten>
+    <ns2:SignatureArzt></ns2:SignatureArzt>
+</ns2:NFD_Document>

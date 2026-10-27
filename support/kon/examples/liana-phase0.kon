@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "url": "http://localhost:8080",
+  "rewriteServiceEndpoints": true,
+  "mandantId": "M1",
+  "workplaceId": "WP1",
+  "clientSystemId": "CS1",
+  "credentials": {
+    "type": "basic",
+    "username": "liana",
+    "password": "${LIANA_BASIC_PASSWORD}"
+  },
+  "env": "ru"
+}

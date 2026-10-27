@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic (LIANA-132): CardService in 8.1, 8.2 with a higher revision than the binding and 9.0 without binding; the
+     WSDL namespace as TargetNamespace as with the secunet Konnektor; EventService without Endpoint (EndpointTLS only). -->
+<CONN:ConnectorServices xmlns:CONN="http://ws.gematik.de/conn/ServiceDirectory/v3.1"
+    xmlns:SI="http://ws.gematik.de/conn/ServiceInformation/v2.0"
+    xmlns:PI="http://ws.gematik.de/int/version/ProductInformation/v1.1">
+  <PI:ProductInformation>
+    <PI:InformationDate>2026-10-14T12:00:00Z</PI:InformationDate>
+    <PI:ProductTypeInformation>
+      <PI:ProductType>Konnektor</PI:ProductType>
+      <PI:ProductTypeVersion>5.5.0</PI:ProductTypeVersion>
+    </PI:ProductTypeInformation>
+    <PI:ProductIdentification>
+      <PI:ProductVendorID>TESTV</PI:ProductVendorID>
+      <PI:ProductCode>TEST</PI:ProductCode>
+      <PI:ProductVersion>
+        <PI:Local>
+          <PI:HWVersion>2.0.0</PI:HWVersion>
+          <PI:FWVersion>5.1.3</PI:FWVersion>
+        </PI:Local>
+      </PI:ProductVersion>
+    </PI:ProductIdentification>
+  </PI:ProductInformation>
+  <CONN:TLSMandatory>true</CONN:TLSMandatory>
+  <CONN:ClientAutMandatory>false</CONN:ClientAutMandatory>
+  <SI:ServiceInformation>
+    <SI:Service Name="CardService">
+      <SI:Abstract>Kartendienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardService/WSDL/v9.0" Version="9.0.0">
+          <SI:Abstract>CardService 9.0.0</SI:Abstract>
+          <SI:Endpoint Location="http://kon/ws/CardService/9"/>
+          <SI:EndpointTLS Location="https://kon/ws/CardService/9"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardService/WSDL/v8.1" Version="8.1.2">
+          <SI:Abstract>CardService 8.1.2</SI:Abstract>
+          <SI:Endpoint Location="http://kon/ws/CardService/81"/>
+          <SI:EndpointTLS Location="https://kon/ws/CardService/81"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardService/WSDL/v8.2" Version="8.2.3">
+          <SI:Abstract>CardService 8.2.3</SI:Abstract>
+          <SI:Endpoint Location="http://kon/ws/CardService/82"/>
+          <SI:EndpointTLS Location="https://kon/ws/CardService/82"/>
+        </SI:Version>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/CardService/WSDL/v8.2" Version="8.2.0">
+          <SI:Abstract>CardService 8.2.0</SI:Abstract>
+          <SI:Endpoint Location="http://kon/ws/CardService/820"/>
+          <SI:EndpointTLS Location="https://kon/ws/CardService/820"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+    <SI:Service Name="EventService">
+      <SI:Abstract>Systeminformationsdienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/EventService/WSDL/v7.2" Version="7.2.0">
+          <SI:Abstract>EventService 7.2.0</SI:Abstract>
+          <SI:EndpointTLS Location="https://kon/ws/EventService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+    <SI:Service Name="SignatureService">
+      <SI:Abstract>Signaturdienst</SI:Abstract>
+      <SI:Versions>
+        <SI:Version TargetNamespace="http://ws.gematik.de/conn/SignatureService/v7.4" Version="7.4.2">
+          <SI:Abstract>SignatureService 7.4.2</SI:Abstract>
+          <SI:EndpointTLS Location="https://kon/ws/SignatureService"/>
+        </SI:Version>
+      </SI:Versions>
+    </SI:Service>
+  </SI:ServiceInformation>
+</CONN:ConnectorServices>

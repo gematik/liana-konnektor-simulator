@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>de.gematik.liana</groupId>
+    <artifactId>liana-parent</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>liana-control-client</artifactId>
+  <name>LIANA Control-Client</name>
+
+  <!-- published under Apache 2.0 (LIANA-140) -->
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+
+  <!-- Client of LIANA's Admin API (control plane, LIANA-138), unrelated to konnektor-client;
+       Java 17 for Primärsysteme and test suites (decision-016). -->
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <!-- deployed without parent: dependencies with resolved versions, no Quarkus BOM for the user (LIANA-142) -->
+    <flatten.mode>ossrh</flatten.mode>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- no JBoss LogManager: the client modules do not know Quarkus -->
+          <systemPropertyVariables combine.self="override" />
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>ohne-konnektor-client</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>de.gematik.liana:konnektor-client</exclude>
+                  </excludes>
+                  <message>Data- und Control-Plane getrennt: liana-control-client hängt nicht an konnektor-client (LIANA-130)</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

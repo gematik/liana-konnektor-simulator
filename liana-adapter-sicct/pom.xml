@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>de.gematik.liana</groupId>
+    <artifactId>liana-parent</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>liana-adapter-sicct</artifactId>
+  <name>LIANA Adapter SICCT</name>
+
+  <properties>
+    <!-- not deployed to Nexus, only the client artifacts are (LIANA-142) -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+  </properties>
+
+  <!-- SICCT to the eHealth KT (decision-11): envelope, connection, events; plain Java, the TLS socket comes from
+       liana-app (BCJSSE, decision-1/-8) -->
+  <dependencies>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-kern</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

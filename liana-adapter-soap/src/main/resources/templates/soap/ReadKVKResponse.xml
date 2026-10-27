@@ -1,0 +1,2 @@
+{@java.lang.String kvk}
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Header/><SOAP-ENV:Body><KVK:ReadKVKResponse xmlns:KVK="http://ws.gematik.de/conn/vsds/KvkService/v4.0"><KVK:KVK>{kvk}</KVK:KVK></KVK:ReadKVKResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>

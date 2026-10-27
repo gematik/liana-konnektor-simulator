@@ -1,0 +1,51 @@
+# Native LIANA image. Prerequisite: ./mvnw package -Dnative (in the repo root directory)
+# Build: docker build -f liana-app/src/main/docker/Dockerfile.native-micro -t liana .
+# Fresh TSL (LIANA-180): fetches the RU TSL, on error or an older SequenceNumber the checked-in copy; never
+# fails. TSL_REFRESH (CI: build number) forces a new fetch, otherwise the build cache applies. Source and SequenceNumber
+# appear in the build log (--progress=plain).
+FROM registry.access.redhat.com/ubi9/ubi-minimal AS tsl
+ARG TSL_URL=https://download-ref.tsl.ti-dienste.de/ECC/ECC-RSA_TSL-ref.xml
+ARG TSL_REFRESH=
+COPY support/pki/tsl/ECC-RSA_TSL-ref.xml /tsl/baseline.xml
+COPY tools/pki/tsl-fetch.sh /tsl/tsl-fetch.sh
+RUN echo "TSL_REFRESH=${TSL_REFRESH}" && sh /tsl/tsl-fetch.sh /tsl/baseline.xml /tsl/out/ECC-RSA_TSL-ref.xml "$TSL_URL"
+
+FROM quay.io/quarkus/ubi9-quarkus-micro-image:2.0
+# Set by BuildKit; selects the static kartos binary (decision-7) matching the target platform.
+ARG TARGETARCH
+WORKDIR /work/
+RUN chown 1001 /work && chmod "g+rwX" /work && chown 1001:root /work
+COPY --chown=1001:root liana-app/target/*-runner /work/application
+COPY --chown=1001:root support/images /opt/liana/images
+COPY --chown=1001:root --from=tsl /tsl/out/ECC-RSA_TSL-ref.xml /opt/liana/pki/
+COPY --chown=1001:root support/pki/tsl/BNetzA-VL.xml /opt/liana/pki/
+ENV LIANA_PKI_TSL=/opt/liana/pki/ECC-RSA_TSL-ref.xml \
+    LIANA_PKI_BNETZA_VL=/opt/liana/pki/BNetzA-VL.xml
+# Konnektor TLS (LIANA-58): ID.AK.AUT and ANCL_CCERT_LIST from the test PKI, without the CA key
+COPY --chown=1001:root support/pki/server/ak-aut-p256.p12 support/pki/server/ak-aut-bp256.p12 support/pki/server/ak-aut-rsa.p12 support/pki/server/sak-aut-bp256.p12 /opt/liana/pki/server/
+COPY --chown=1001:root support/pki/clients/cs1-p256.pem support/pki/clients/cs1-bp256.pem /opt/liana/pki/clients/
+ENV LIANA_INFRASTRUCTURE_KONNEKTOR_GSMC_K_AK_AUT=/opt/liana/pki/server/ak-aut-p256.p12 \
+    LIANA_INFRASTRUCTURE_KONNEKTOR_GSMC_K_AK_AUT_RSA=/opt/liana/pki/server/ak-aut-rsa.p12 \
+    LIANA_INFRASTRUCTURE_KONNEKTOR_GSMC_K_SAK_AUT=/opt/liana/pki/server/sak-aut-bp256.p12 \
+    LIANA_TLS_CLIENT_CERTS=/opt/liana/pki/clients/cs1-p256.pem,/opt/liana/pki/clients/cs1-bp256.pem
+COPY --chown=1001:root tools/kartos/kartos-linux-${TARGETARCH} /opt/liana/bin/kartos
+COPY --chown=1001:root tools/kartos/LICENSE tools/kartos/THIRD-PARTY-NOTICES.txt /opt/liana/licenses/kartos/
+
+# LIANA-211: labels of the gematik Docker guideline, DockerHub publication checks them. Commit and version come from
+# jenkinsfiles/Publish.jenkinsfile (GitHub state); a local build leaves both empty.
+ARG COMMIT_HASH=
+ARG VERSION=
+LABEL de.gematik.vendor="gematik GmbH" \
+      maintainer="software-development@gematik.de" \
+      de.gematik.app="LIANA Konnektor-Simulator" \
+      de.gematik.git-repo-name="https://github.com/gematik/liana-konnektor-simulator" \
+      de.gematik.commit-sha=$COMMIT_HASH \
+      de.gematik.version=$VERSION
+
+EXPOSE 8080 8443 9090
+USER 1001
+# Readiness via GET /admin/ready (LIANA-107), queried by the binary itself: the base image lacks curl, wget and grep.
+# Admin port from LIANA_ADMIN_PORT, otherwise 9090. Generous start period for amd64 under emulation.
+HEALTHCHECK --interval=5s --timeout=5s --start-period=60s --retries=3 CMD ["./application", "health"]
+
+ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]

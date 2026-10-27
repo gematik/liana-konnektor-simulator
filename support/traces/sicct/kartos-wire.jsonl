@@ -1,0 +1,14 @@
+{"meta":{"peer":"127.0.0.1:60488","tls_cipher":"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256","tls_version":"TLSv1_2","started_at_unix_nanos":1791564075876843000}}
+{"ts_unix_nanos":1791564076856550000,"dir":"in","msg":"CommandC","fu":"0x0000","seq":1,"payload_len":4,"hex":"6b00000001000000000480280000"}
+{"ts_unix_nanos":1791564076856695000,"dir":"out","msg":"CommandR","fu":"0x0000","seq":1,"payload_len":22,"hex":"83000000010000000016691213001300130c47454d3536343037363835369000"}
+{"ts_unix_nanos":1791564077157868000,"dir":"in","msg":"CommandC","fu":"0x0000","seq":2,"payload_len":5,"hex":"6b0000000200000000058013006300"}
+{"ts_unix_nanos":1791564077157938000,"dir":"out","msg":"CommandR","fu":"0x0000","seq":2,"payload_len":20,"hex":"830000000200000000146310810800010002000300048004151515159000"}
+{"ts_unix_nanos":1791564077460909000,"dir":"in","msg":"CommandC","fu":"0x0000","seq":3,"payload_len":5,"hex":"6b0000000300000000058012010100"}
+{"ts_unix_nanos":1791564077460938000,"dir":"out","msg":"CommandR","fu":"0x0000","seq":3,"payload_len":15,"hex":"8300000003000000000f5f410a3b909681b1fe451f03916201"}
+{"ts_unix_nanos":1791564077768761000,"dir":"in","msg":"CommandC","fu":"0x0001","seq":4,"payload_len":12,"hex":"6b00010004000000000c00a4040c07d2760001448000"}
+{"ts_unix_nanos":1791564077768881000,"dir":"out","msg":"CommandR","fu":"0x0001","seq":4,"payload_len":2,"hex":"830001000400000000029000"}
+{"ts_unix_nanos":1791564078143764000,"dir":"out","msg":"Event","fu":"0x0000","seq":64768,"payload_len":4,"hex":"500000fd00000000000485020003"}
+{"ts_unix_nanos":1791564078453814000,"dir":"out","msg":"Event","fu":"0x0000","seq":64769,"payload_len":4,"hex":"500000fd01000000000484020003"}
+{"ts_unix_nanos":1791564079456823000,"dir":"out","msg":"Event","fu":"0x0000","seq":64770,"payload_len":4,"hex":"500000fd02000000000480020000"}
+{"ts_unix_nanos":1791564080064328000,"dir":"in","msg":"CommandC","fu":"0x0000","seq":5,"payload_len":4,"hex":"6b00000005000000000480290000"}
+{"ts_unix_nanos":1791564080064398000,"dir":"out","msg":"CommandR","fu":"0x0000","seq":5,"payload_len":2,"hex":"830000000500000000029000"}

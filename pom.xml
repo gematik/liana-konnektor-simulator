@@ -1,0 +1,625 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+         child.project.url.inherit.append.path="false">
+  <modelVersion>4.0.0</modelVersion>
+
+  <!-- Modules per decision-8: Kern without Quarkus, one adapter per peer, app with Quarkus and native image. -->
+  <groupId>de.gematik.liana</groupId>
+  <artifactId>liana-parent</artifactId>
+  <version>${revision}</version>
+  <packaging>pom</packaging>
+  <name>LIANA Konnektor-Simulator</name>
+  <url>https://github.com/gematik/liana-konnektor-simulator</url>
+
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <!-- LIANA-155.01: required by Maven Central, inherited by the published modules; url and scm
+       without the module path appended -->
+  <description>Konnektor simulator for gematik test suites</description>
+
+  <organization>
+    <name>gematik GmbH</name>
+    <url>https://www.gematik.de</url>
+  </organization>
+
+  <developers>
+    <developer>
+      <name>gematik</name>
+      <email>software-development@gematik.de</email>
+      <url>https://gematik.github.io/</url>
+      <organization>gematik GmbH</organization>
+      <organizationUrl>https://www.gematik.de/</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm child.scm.connection.inherit.append.path="false"
+       child.scm.developerConnection.inherit.append.path="false"
+       child.scm.url.inherit.append.path="false">
+    <connection>scm:git:https://github.com/gematik/liana-konnektor-simulator.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/gematik/liana-konnektor-simulator.git</developerConnection>
+    <url>https://github.com/gematik/liana-konnektor-simulator</url>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/gematik/liana-konnektor-simulator/issues</url>
+  </issueManagement>
+
+  <!-- LIANA-142: client artifacts go to the internal Nexus, URLs from the Jenkins Maven configuration -->
+  <distributionManagement>
+    <repository>
+      <id>releases</id>
+      <!--suppress UnresolvedMavenProperty -->
+      <url>${releaseDeploymentRepository}</url>
+    </repository>
+    <snapshotRepository>
+      <id>snapshots</id>
+      <!--suppress UnresolvedMavenProperty -->
+      <url>${snapshotDeploymentRepository}</url>
+    </snapshotRepository>
+  </distributionManagement>
+
+  <modules>
+    <module>liana-kern</module>
+    <module>liana-adapter-fake-terminal</module>
+    <module>liana-adapter-sicct</module>
+    <module>liana-adapter-cetp</module>
+    <module>liana-adapter-vsdm</module>
+    <module>liana-adapter-sds</module>
+    <module>liana-adapter-soap</module>
+    <module>liana-app</module>
+    <module>liana-trace-tests</module>
+    <!-- Konnektor client (LIANA-130, decision-016): Java 17, never depends on LIANA's runtime -->
+    <module>liana-contract</module>
+    <module>konnektor-client</module>
+    <module>liana-control-client</module>
+    <module>konnektor-client-conformance</module>
+    <!-- LIANA-200: aggregated test coverage (JaCoCo) across all modules, basis for SonarQube -->
+    <module>liana-coverage</module>
+  </modules>
+
+  <properties>
+    <!-- LIANA-Version, einzige Stelle (Schema in docs/handbuch.md, Abschnitt „Version“) -->
+    <revision>0.7.17</revision>
+    <maven.compiler.release>21</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <!-- Quarkus LTS line 3.33; raise to the latest 3.33.x patch when bootstrapping -->
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <quarkus.platform.version>3.33.4.1</quarkus.platform.version>
+    <compiler-plugin.version>3.14.0</compiler-plugin.version>
+    <surefire-plugin.version>3.5.3</surefire-plugin.version>
+    <jandex-plugin.version>3.5.3</jandex-plugin.version>
+    <archunit.version>1.5.0</archunit.version>
+    <!-- PAdES (decision-020) -->
+    <pdfbox.version>3.0.8</pdfbox.version>
+    <enforcer-plugin.version>3.6.2</enforcer-plugin.version>
+    <!-- LIANA-204: security fixes ahead of the Quarkus BOM (OWASP); drop once the BOM carries them -->
+    <jackson.version>2.21.8</jackson.version>
+    <parsson.version>1.1.8</parsson.version>
+    <asm.version>9.11.1</asm.version>
+    <license-plugin.version>2.7.1</license-plugin.version>
+    <flatten-plugin.version>1.7.3</flatten-plugin.version>
+    <!-- LIANA-155.01: Maven Central (sources, javadoc, signature, publishing) -->
+    <source-plugin.version>3.4.0</source-plugin.version>
+    <javadoc-plugin.version>3.12.0</javadoc-plugin.version>
+    <gpg-plugin.version>3.2.8</gpg-plugin.version>
+    <central-publishing-plugin.version>0.12.0</central-publishing-plugin.version>
+    <jaxb-plugin.version>4.0.16</jaxb-plugin.version>
+    <license-header-plugin.version>5.1.2</license-header-plugin.version>
+    <dependency-check-plugin.version>13.0.0</dependency-check-plugin.version>
+    <jacoco-plugin.version>0.8.14</jacoco-plugin.version>
+    <spotless-plugin.version>3.10.1</spotless-plugin.version>
+    <google-java-format.version>1.28.0</google-java-format.version>
+    <sonar-plugin.version>5.7.0.6970</sonar-plugin.version>
+    <!-- LIANA-200: SonarQube (Jenkins, mavenCheckWithSonarQube) reads the aggregated coverage from liana-coverage -->
+    <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/liana-coverage/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+    <!-- bundled third-party library of the Control Center (preact-htm.js) -->
+    <sonar.exclusions>**/gui/vendor/**</sonar.exclusions>
+    <!-- LIANA-205: one test per request of a Postman collection; the checks of each request live in the helpers of
+         PostmanCollection, which java:S2699 does not follow across files -->
+    <sonar.issue.ignore.multicriteria>postman</sonar.issue.ignore.multicriteria>
+    <sonar.issue.ignore.multicriteria.postman.ruleKey>java:S2699</sonar.issue.ignore.multicriteria.postman.ruleKey>
+    <sonar.issue.ignore.multicriteria.postman.resourceKey>**/de/gematik/liana/postman/*Test.java</sonar.issue.ignore.multicriteria.postman.resourceKey>
+    <!-- LIANA-142: only the parent POM and the client artifacts are deployed; the other modules set true -->
+    <flatten.mode>resolveCiFriendliesOnly</flatten.mode>
+    <skipITs>true</skipITs>
+    <!-- LIANA-123: the native stage in Jenkins (-DskipUTs -DskipKartosITs) only checks the binary; Surefire and the
+         kartos ITs against the JVM already ran there in "JVM-Test". Locally both stay on. -DskipTests still works. -->
+    <skipTests>false</skipTests>
+    <skipUTs>${skipTests}</skipUTs>
+    <skipKartosITs>${skipTests}</skipKartosITs>
+    <!-- tests run in the repository root, so that support/ and tools/ resolve relatively (decision-8) -->
+    <liana.root>${maven.multiModuleProjectDirectory}</liana.root>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <!-- LIANA-204: before the Quarkus BOM, the first import wins; CVE-2026-110879 fixed in 2.21.8 -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- LIANA-204: CVE-2026-9563 fixed in 1.1.8 -->
+      <dependency>
+        <groupId>org.eclipse.parsson</groupId>
+        <artifactId>parsson</artifactId>
+        <version>${parsson.version}</version>
+      </dependency>
+      <!-- LIANA-204: CVE-2026-110257 to CVE-2026-110263 fixed in 9.11, CVE-2026-112046 in 9.11.1 -->
+      <dependency>
+        <groupId>org.ow2.asm</groupId>
+        <artifactId>asm</artifactId>
+        <version>${asm.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>liana-kern</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>liana-adapter-fake-terminal</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>liana-adapter-sicct</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>liana-adapter-cetp</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>liana-adapter-vsdm</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>liana-adapter-sds</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>liana-adapter-soap</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>liana-contract</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>konnektor-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>de.gematik.liana</groupId>
+        <artifactId>liana-control-client</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.tngtech.archunit</groupId>
+        <artifactId>archunit-junit5</artifactId>
+        <version>${archunit.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>${quarkus.platform.group-id}</groupId>
+          <artifactId>quarkus-maven-plugin</artifactId>
+          <version>${quarkus.platform.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>io.smallrye</groupId>
+          <artifactId>jandex-maven-plugin</artifactId>
+          <version>${jandex-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>make-index</id>
+              <goals>
+                <goal>jandex</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- LIANA-155.01: sources and javadoc jars for Maven Central; the published modules add both plugins -->
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-source-plugin</artifactId>
+          <version>${source-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>attach-sources</id>
+              <goals>
+                <goal>jar-no-fork</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${javadoc-plugin.version}</version>
+          <configuration>
+            <doclint>none</doclint>
+            <quiet>true</quiet>
+          </configuration>
+          <executions>
+            <execution>
+              <id>attach-javadocs</id>
+              <goals>
+                <goal>jar</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- LIANA-131: client modules never depend on LIANA's runtime, not even in test scope (decision-016). Modules
+             with an allowlist add an execution of their own. -->
+        <plugin>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>${enforcer-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>ohne-liana-laufzeit</id>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <bannedDependencies>
+                    <excludes>
+                      <exclude>de.gematik.liana:liana-app</exclude>
+                      <exclude>de.gematik.liana:liana-kern</exclude>
+                      <exclude>de.gematik.liana:liana-adapter-*</exclude>
+                      <exclude>de.gematik.liana:liana-trace-tests</exclude>
+                    </excludes>
+                    <message>Client-Module hängen nicht an LIANAs Laufzeit, auch nicht im Test-Scope (LIANA-131, decision-016)</message>
+                  </bannedDependencies>
+                </rules>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <!-- LIANA-131: licenses of the runtime dependencies of the published client artifacts (decision-016) and of
+             liana-app (Docker and native image); allowlist from the permissive licenses of the OSPO guideline
+             'Usage of Third-Party Open Source Libraries' (table 2) plus EDL-1.0 (BSD-3-Clause text) and EPL-2.0
+             (Jakarta APIs, weak copyleft, unmodified) -->
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>license-maven-plugin</artifactId>
+          <version>${license-plugin.version}</version>
+          <executions>
+            <execution>
+              <id>lizenzen</id>
+              <goals>
+                <goal>add-third-party</goal>
+              </goals>
+              <configuration>
+                <excludedScopes>test,system,provided</excludedScopes>
+                <failOnMissing>true</failOnMissing>
+                <!-- check on every build, not only when THIRD-PARTY.txt is older than the module POM -->
+                <forceUpdate>true</forceUpdate>
+                <failOnBlacklist>true</failOnBlacklist>
+                <includedLicenses>Apache-2.0|MIT|MIT-0|BSD-2-Clause|BSD-3-Clause|EDL-1.0|EPL-2.0</includedLicenses>
+                <licenseMerges>
+                  <licenseMerge>Apache-2.0|Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache License 2.0|Apache 2.0</licenseMerge>
+                  <licenseMerge>MIT|Bouncy Castle Licence|MIT License|The MIT License</licenseMerge>
+                  <licenseMerge>BSD-3-Clause|BSD 3-Clause License|New BSD License</licenseMerge>
+                  <licenseMerge>MIT-0|MIT No Attribution</licenseMerge>
+                  <licenseMerge>EDL-1.0|Eclipse Distribution License - v 1.0|EDL 1.0</licenseMerge>
+                  <licenseMerge>EPL-2.0|Eclipse Public License v. 2.0|Eclipse Public License - v 2.0|Eclipse Public License 2.0|EPL 2.0</licenseMerge>
+                </licenseMerges>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
+        <plugin>
+          <groupId>org.sonarsource.scanner.maven</groupId>
+          <artifactId>sonar-maven-plugin</artifactId>
+          <version>${sonar-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${surefire-plugin.version}</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>integration-test</goal>
+                <goal>verify</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <workingDirectory>${liana.root}</workingDirectory>
+            <systemPropertyVariables>
+              <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+              <maven.home>${maven.home}</maven.home>
+            </systemPropertyVariables>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+      <!-- License header (OSPO): every source file carries license.header.txt, otherwise the build fails.
+           Add it with ./mvnw com.mycila:license-maven-plugin:format -->
+      <plugin>
+        <groupId>com.mycila</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+        <version>${license-header-plugin.version}</version>
+        <configuration>
+          <licenseSets>
+            <licenseSet>
+              <header>${maven.multiModuleProjectDirectory}/license.header.txt</header>
+              <!-- per module its src/ (and examples/ in konnektor-client), in the root directory tools/ -->
+              <includes>
+                <include>src/**/*.java</include>
+                <include>src/**/*.js</include>
+                <include>src/**/*.html</include>
+                <include>src/**/*.css</include>
+                <include>examples/**/*.java</include>
+                <include>tools/**/*.sh</include>
+                <include>tools/**/*.py</include>
+              </includes>
+              <excludes>
+                <!-- third-party library with its own license (LICENSE-*.txt next to it) -->
+                <exclude>**/gui/vendor/**</exclude>
+                <exclude>**/target/**</exclude>
+                <exclude>.claude/**</exclude>
+              </excludes>
+            </licenseSet>
+          </licenseSets>
+        </configuration>
+        <executions>
+          <execution>
+            <id>lizenz-header</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- LIANA-199: Google Java Format (Coding Conventions, like tiger), the build checks in validate.
+           Reformat with ./mvnw spotless:apply -->
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <version>${spotless-plugin.version}</version>
+        <configuration>
+          <java>
+            <includes>
+              <include>src/**/*.java</include>
+              <include>examples/**/*.java</include>
+            </includes>
+            <toggleOffOn/>
+            <googleJavaFormat>
+              <version>${google-java-format.version}</version>
+              <style>GOOGLE</style>
+            </googleJavaFormat>
+          </java>
+        </configuration>
+        <executions>
+          <execution>
+            <id>google-java-format</id>
+            <phase>validate</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- LIANA-142: installed and deployed POMs with the resolved version instead of ${revision} -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>flatten-maven-plugin</artifactId>
+        <version>${flatten-plugin.version}</version>
+        <configuration>
+          <flattenMode>${flatten.mode}</flattenMode>
+          <updatePomFile>true</updatePomFile>
+          <outputDirectory>${project.build.directory}</outputDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>flatten</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>flatten</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>flatten-clean</id>
+            <phase>clean</phase>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- LIANA-200: test coverage. prepare-agent sets argLine, which Surefire and Failsafe take over (unit tests,
+           Quarkus tests, kartos ITs in the same jacoco.exec); processes like quarkus-run.jar of the trace ITs do not count.
+           Report per module in target/site/jacoco, aggregated in liana-coverage. -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>jacoco-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>jacoco-report</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>report</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${compiler-plugin.version}</version>
+        <configuration>
+          <parameters>true</parameters>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${surefire-plugin.version}</version>
+        <configuration>
+          <skipTests>${skipUTs}</skipTests>
+          <workingDirectory>${liana.root}</workingDirectory>
+          <systemPropertyVariables>
+            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+            <maven.home>${maven.home}</maven.home>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>native</id>
+      <activation>
+        <property>
+          <name>native</name>
+        </property>
+      </activation>
+      <properties>
+        <skipITs>false</skipITs>
+        <quarkus.native.enabled>true</quarkus.native.enabled>
+        <!-- LIANA-200: the ITs check the binary, coverage only measures the JVM stage -->
+        <jacoco.skip>true</jacoco.skip>
+      </properties>
+    </profile>
+    <!-- OWASP Dependency Check (OSPO): ./mvnw -Powasp verify -DskipTests, report in target/dependency-check-report.html.
+         Fails on a critical vulnerability (CVSS 9 or higher). Needs an NVD API key (without one, plugin 13.0.0
+         fails while downloading): key at https://nvd.nist.gov/developers/request-an-api-key, passed with -DnvdApiKey=… -->
+    <profile>
+      <id>owasp</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.owasp</groupId>
+            <artifactId>dependency-check-maven</artifactId>
+            <version>${dependency-check-plugin.version}</version>
+            <inherited>false</inherited>
+            <configuration>
+              <failBuildOnCVSS>9</failBuildOnCVSS>
+              <skipTestScope>true</skipTestScope>
+              <skipProvidedScope>true</skipProvidedScope>
+              <skipSystemScope>true</skipSystemScope>
+              <formats>
+                <format>HTML</format>
+                <format>JSON</format>
+              </formats>
+              <!-- no npm, no .NET; OSS Index needs an account since 2025 -->
+              <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
+              <nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
+              <nodeAuditAnalyzerEnabled>false</nodeAuditAnalyzerEnabled>
+              <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+            </configuration>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>aggregate</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <!-- LIANA-155.01: release to Maven Central (stage of jenkinsfiles/Publish.jenkinsfile):
+         ./mvnw -pl konnektor-client -am -Pexternal deploy. Signs in verify, uploads konnektor-client and liana-contract;
+         the parent POM stays out, the published POMs are flattened without it. Bundle without upload: -DskipUpload -->
+    <profile>
+      <id>external</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${gpg-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <phase>verify</phase>
+                <configuration>
+                  <gpgArguments>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                  </gpgArguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central-publishing-plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
+              <excludeArtifacts>
+                <artifact>liana-parent</artifact>
+              </excludeArtifacts>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <!-- Data from vendor products (recordings, signatures) lives only internally under support/vendor/ and is
+         not published on GitHub (.githubignore). Without the folder, Surefire and Failsafe skip the tests
+         with @Tag("vendor-data"). -->
+    <profile>
+      <id>without-vendor-data</id>
+      <activation>
+        <file>
+          <missing>${maven.multiModuleProjectDirectory}/support/vendor</missing>
+        </file>
+      </activation>
+      <properties>
+        <excludedGroups>vendor-data</excludedGroups>
+      </properties>
+    </profile>
+  </profiles>
+</project>

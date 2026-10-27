@@ -1,0 +1,70 @@
+target/
+.mvn/wrapper/maven-wrapper.jar
+*.iml
+.idea/
+.vscode/
+.DS_Store
+# local spec PDFs (the text is in docs/specs/text)
+docs/specs/pdf/
+# test run artifacts
+support/traces/_runs/
+# vendor specs (KMS interfaces and others), not public: local only, never commit
+docs/specs/vendor/*
+!docs/specs/vendor/README.md
+
+# Files and folders that stay internal when LIANA is published to
+# https://github.com/gematik/liana-konnektor-simulator
+# Same syntax as .gitignore; the GitHub publish pipeline merges this file into .gitignore,
+# so nothing listed here is committed to GitHub.
+
+# --- Internal project management and CI -----------------------------------------------
+# Backlog.md tickets, decisions and milestones (internal planning, German, ticket IDs)
+backlog/
+# Jenkins pipeline for the internal CI (Artifact Registry, Nexus deployment)
+jenkinsfiles/
+tools/ci/
+# Exclusions for the OSPO license header check in Jenkins (bundled third-party code, gui/vendor/); the OSPO guideline
+# 'Publishing on GitHub' recommends keeping this file internal
+.dependencyLicenses
+# Suppressions for the OWASP Dependency Check in Jenkins (false CPE matches, LIANA-204)
+.owaspignore
+# Notes that only work with gematik access (registry, Nexus, testhub branch, backlog)
+docs/intern.md
+
+# --- Local tooling ----------------------------------------------------------------------
+# Instructions and worktrees of the AI coding assistant
+CLAUDE.md
+.claude/
+# IDE settings (already in .gitignore, repeated so the publication never depends on it)
+.idea/
+.vscode/
+*.iml
+.DS_Store
+file-uploads/
+
+# --- Specifications ---------------------------------------------------------------------
+# Text copies of gematik and TeleTrusT specifications and the requirement index built from
+# them; docs/specs/INDEX.md links the public PDFs. Only used by tools/specs/, not by the build.
+docs/specs/text/
+docs/specs/vendor/*
+!docs/specs/vendor/README.md
+support/afo/
+
+# --- Vendor data ------------------------------------------------------------------------
+# Data from vendor products: traces of real connectors and Primärsysteme, signatures
+# created by vendor connectors. Tests reading it carry @Tag("vendor-data"); without this
+# folder the Maven profile "without-vendor-data" skips them (see support/vendor/README.md).
+support/vendor/
+
+# --- Internal dependencies --------------------------------------------------------------
+# Tests using tiger-cats-extensions, which is not on Maven Central; without this folder the
+# Maven profile "cats" in liana-trace-tests is inactive and the dependency is not needed.
+liana-trace-tests/src/test-cats/
+# Tests using kms-client (de.gematik.kms), which is not public; only compiled with the Maven profile
+# "kms-client" in liana-app and a locally installed kms-client.
+liana-app/src/test-kms/
+# kartos is published as binaries plus LICENSE only; build script and build record point
+# to the internal kartos repository.
+tools/kartos/build.sh
+tools/kartos/VERSION
+

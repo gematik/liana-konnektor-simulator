@@ -1,0 +1,2 @@
+{@de.gematik.liana.adapter.soap.SubscriptionView subscription}
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"><SOAP-ENV:Header/><SOAP-ENV:Body><EVT:SubscribeResponse xmlns:CONN="http://ws.gematik.de/conn/ConnectorCommon/v5.0" xmlns:EVT="http://ws.gematik.de/conn/EventService/v7.2"><CONN:Status><CONN:Result>OK</CONN:Result></CONN:Status><EVT:SubscriptionID>{subscription.id}</EVT:SubscriptionID><EVT:TerminationTime>{subscription.terminationTime}</EVT:TerminationTime></EVT:SubscribeResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>

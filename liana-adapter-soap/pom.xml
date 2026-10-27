@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>de.gematik.liana</groupId>
+    <artifactId>liana-parent</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>liana-adapter-soap</artifactId>
+  <name>LIANA Adapter SOAP</name>
+
+  <properties>
+    <!-- not deployed to Nexus, only the client artifacts are (LIANA-142) -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+  </properties>
+
+  <!-- SOAP services under /ws/*: StAX parser, responses via Qute templates, no WSDL code generation (decision-2) -->
+  <dependencies>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-kern</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-qute</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>io.smallrye</groupId>
+        <artifactId>jandex-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

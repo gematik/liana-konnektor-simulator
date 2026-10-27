@@ -1,0 +1,232 @@
+# LIANA – boot configuration.
+# Changes made through the Admin API at runtime are volatile; POST /admin/reset restores this state.
+
+quarkus:
+  application:
+    name: liana
+  http:
+    port: 8080                 # Konnektor interface: /connector.sds, SOAP services
+    limits:
+      # TIP1-A_4500-02: documents up to 25 MB, Base64 in the SOAP body about 35 MB (KUC_1607_105, LIANA-112.07)
+      max-body-size: 40M
+  security:
+    # BC for Brainpool ECDSA. The globally registered BCJSSE cannot do Brainpool TLS (it gets EC from SunEC);
+    # TLS contexts therefore come from CryptoProviders.tls() (LIANA-4, decision-1).
+    security-providers: BC,BCJSSE
+  ssl:
+    native: true               # the KMS speaks HTTPS (LIANA-55); otherwise the native image has no TLS support
+  native:
+    resources:
+      # Control Center (LIANA-148), OpenAPI (LIANA-149) and schemas for the request validation (LIANA-48) from the classpath
+      includes: gui/**,admin/openapi.yaml,de/gematik/liana/contract/schemas/**
+
+liana:
+  env: ru                      # ru | tu | pu, goes into the .kon export
+
+  # Vendor profile (decision-10): neutral (reading of the spec) | KOCO | RISE | SECUNET | EHEX | CGM.
+  # Determines vendor-specific behaviour and the KMS; switchable at runtime with PUT /admin/vendor.
+  vendor: neutral
+  # Known spec deviations of the peers (KT, kartos, LIANA-126): false works around them and writes
+  # LIANA/DEVIATION (Warning) to the Systemprotokoll, true lets the operation fail (Error); PUT /admin/vendor.
+  strict: false
+
+  admin:
+    port: 9090                 # management port (decision-017): HTTP and HTTPS, Admin API without auth, KMS under /rest/mgmt
+    events:                    # GET /admin/events (Server-Sent Events, LIANA-150)
+      buffer: 1000             # events kept for resuming with Last-Event-ID
+      max-streams: 16          # concurrent streams, 503 beyond that
+      heartbeat: 15s           # comment line against proxy timeouts
+
+  # CATS REST interface for tiger-cats-extensions (LIANA-67): one CATS terminal each under /cats/<KT> on the
+  # management port (base URL http://host:9090/cats/KT-01, LIANA-147), slots as in the LIANA KT. port additionally opens
+  # a listener of its own without prefix as up to 0.6; Konnektor-QES hard-codes http://127.0.0.1:9998
+  # (tools/testhub/qes.sh: LIANA_CATS_TERMINALS_0__PORT=9998). Inserted cards are volatile, POST /admin/reset restores
+  # the YAML.
+  cats:
+    terminals:
+      - terminal: KT-01
+        # port: 9998
+        # insert-delay: 1s   # insert only after this delay, like CATS via KT and SICCT (Konnektor-QES, qes.sh)
+  # Robot interface for tiger-ehealth-kt-e2e (LIANA-106): POST /api/robot/robotCommand with {command, input} like the
+  # card robot of the eHealth KT lab. Off as long as no port is set (tools/testhub/ehkt.sh: LIANA_ROBOT_PORT=9997).
+  # Robot terminal n is terminals[n-1]: eGK in slot 1, Berechtigtenkarte in slot 2. Compartments SC1–SC8 of the
+  # Removinator per side; in the lab eGK SC3 is a G2, SC4 a G2.1, SC5 and SC7 a KVK (EE_KT_T_KVK_READ), Berechtigte SC2
+  # an HBA, SC3 an SMC-B. LIANA has one image per card type. Inserted cards are volatile.
+  robot:
+    # port: 9997
+    terminals: [KT-01]
+    egk: {SC1: egk-valid, SC2: egk-valid, SC3: egk-valid, SC4: egk-valid, SC5: kvk-valid, SC6: egk-valid, SC7: kvk-valid,
+          SC8: egk-valid}
+    berechtigt: {SC1: smcb-valid, SC2: hba-valid, SC3: smcb-valid, SC4: smcb-valid, SC5: smcb-valid, SC6: smcb-valid,
+                 SC7: smcb-valid, SC8: smcb-valid}
+  # Systeminformationsdienst (LIANA-59): Subscribe at the EventService, events via CETP to EventTo (cetp://host:port).
+  # TAB_KON_852 (LIANA-117): with tls.mandatory (ANCL_TLS_MANDATORY) over TLS 1.2, client certificate ID.AK.AUT of the
+  # gSMC-K, LIANA does not check the certificate of the Ereignissenke (CETP1); without, as by default here, over TCP
+  # without TLS (CETP2).
+  events:
+    max-try: 3                 # EVT_MAX_TRY: consecutive failed attempts until the Ereignissenke is unsubscribed automatically
+    connect-timeout: 5s        # connection setup and TLS handshake per event
+    # redirect: tiger-cetp:7001  # all CETP connections to this address instead of EventTo (Tiger in front of the Ereignissenke, LIANA-183)
+  soap:
+    # Validate incoming requests against XSD and WSDL soapAction (LIANA-48): off | log | reject.
+    # log writes violations to the log as a warning, reject refuses them (4000 syntax error, wrong SOAPAction: SOAP-ENV:Client).
+    request-validation: log
+
+  vsdm:                        # Fachmodul VSDM (Tab_FM_VSDM_14, LIANA-141); MANDANT_SMB: infomodel.smb-verwaltet
+    timeout: 10s               # TIMEOUT_VSDM: response time of a Fachdienst
+    max-time: 30s              # MAXTIME_VSDM: Onlineprüfung of ReadVSD, result 3 after that
+    online:
+      sources: []              # chain of the Onlineprüfung: ufs, fixed; empty = only the spec fallback (result 3)
+      ufs:
+        # endpoints:           # GetUpdateFlags, in this order; https with the SM-B as client (TUC_KON_110)
+        #   - url: http://ufs-mock:8080/ufs
+        #     provider-id: 109500969   # optional: only for eGKs of this ProviderID (OU in C.CH.AUT)
+        connect-timeout: 2s    # connection setup per endpoint
+        retry-after: 60s       # an unreachable endpoint is skipped for this long
+  kms:
+    # port: 8500               # only if needed: KMS additionally on its own HTTPS port as up to 0.6 (otherwise under /rest/mgmt on 9090)
+    username: super            # credentials like kmsUsername/kmsPassword of the Konnektor PoPP environments (test access, no secret)
+    password: "33ee§§EE"
+
+  # TLS of the Konnektor interface (LIANA-58, TAB_KON_506-01): HTTPS port next to HTTP 8080 (ANCL_TLS_MANDATORY Disabled).
+  # TLS 1.2 per gemSpec_Krypt, server identity ID.AK.AUT from infrastructure.konnektor.gsmc-k; no TSL or OCSP check.
+  tls:
+    port: 8443
+    url: https://localhost:8443          # EndpointTLS in connector.sds, as clients reach LIANA
+    ecc-for-client-systems: true         # TLS_USE_ECC_FOR_CS (EHEX KMS)
+    mandatory: false                     # ANCL_TLS_MANDATORY: true refuses calls without TLS (spec default Enabled)
+    dvd-open: true                       # ANCL_DVD_OPEN: connector.sds over HTTP even with ANCL_TLS_MANDATORY
+    client-auth: false                   # ANCL_CAUT_MANDATORY (CERTIFICATE): true requires a certificate from client-certs
+    client-certs:                        # ANCL_CCERT_LIST, belong to the first Clientsystem of the Informationsmodell; the KMS adds more
+      - ./support/pki/clients/cs1-p256.pem
+      - ./support/pki/clients/cs1-bp256.pem
+
+  # Informationsmodell (Aufrufkontext, TUC_KON_000). In phase 0 read-only through the Admin API.
+  infomodel:
+    mandants: [M1]
+    client-systems: [CS1]
+    workplaces:
+      - id: WP1
+        mandants: [M1]
+        client-systems: [CS1]
+        terminals: [KT-01, KT-02]
+    # SM-B_Verwaltet (TUC_KON_000 rule R7): without entries every SMC-B is SM-B_Verwaltet of every Mandant.
+    # With entries an SMC-B not listed yields 4009, an SMC-B of another Mandant 4013.
+    # smb-verwaltet:
+    #   - iccsn: "80276883110000165043"
+    #     mandants: [M1]
+
+  card:
+    kartos-bin: /opt/liana/bin/kartos   # card engine (decision-7), env LIANA_CARD_KARTOS_BIN; if missing, tools/kartos/ (LIANA-121)
+    session-timeout: 120s               # CARD_SESSION_TIMEOUT (10–180 s): StartCardSession until the first SecureSendAPDU
+    card-timeout: 10s                   # CARD_TIMEOUT_CARD: longest reset/APDU to a card, 4094 after that
+    # Terminate the Trusted Channel of the PoPP service in LIANA (LIANA-28): LIANA is the card towards the PoPP service
+    # (key of the twin from card-images, by ICCSN) and the terminal towards the card (gsmc-kt of the KT); the
+    # plaintext goes to the Tiger log with trace.push-url. Env LIANA_CARD_TERMINATE_SECURE_MESSAGING
+    terminate-secure-messaging: false
+
+  # Vertrauensraum for TUC_KON_037 (signer of the SignedScenario): CA certificates from the TSL, without checking the TSL signature
+  pki:
+    tsl: ./support/pki/tsl/ECC-RSA_TSL-ref.xml   # in the container /opt/liana/pki/… (LIANA_PKI_TSL in the Dockerfile)
+    bnetza-vl: ./support/pki/tsl/BNetzA-VL.xml   # qualified CAs for VerifyDocument QES (LIANA_PKI_BNETZA_VL)
+    # Download of the TSL at startup (LIANA-180): off = only the baked-in one (fetched into the image at build time),
+    # background = fetch and swap after startup, errors only as a warning, enforce = no startup without TSL.
+    # Env LIANA_PKI_TSL_ONLINE_MODE
+    tsl-online:
+      mode: "off"
+      url: https://download-ref.tsl.ti-dienste.de/ECC/ECC-RSA_TSL-ref.xml
+      timeout: 10s
+    # imported-cas:                           # CERT_IMPORTED_CA_LIST, e.g. [./support/pki/replay/replay-ca.pem]
+
+  # Card APDUs in the Tiger log (LIANA-27): POST /traffic to the admin port of a Tiger proxy, SICCT envelope
+  trace:
+    # push-url: http://tiger-proxy:18080   # no push without a value; env LIANA_TRACE_PUSH_URL
+    push-timeout: 500ms                  # per push; a slow proxy holds up no APDU
+
+  # Kartenterminaldienst (gemSpec_Kon TAB_KON_527): service discovery and TLS to eHealth KTs (LIANA-75/76)
+  ctm:
+    service-discovery-port: 4742      # CTM_SERVICE_DISCOVERY_PORT: the KTs listen there for service requests
+    service-announcement-port: 4742   # CTM_SERVICE_ANNOUNCEMENT_PORT: LIANA listens there for service announcements
+    service-discovery-timeout: 3s     # CTM_SERVICE_DISCOVERY_TIMEOUT
+    service-discovery-cycle: 10m      # CTM_SERVICE_DISCOVERY_CYCLE (0 = off): service request to disconnected active KTs (TIP1-A_4538-02)
+    tls-handshake-timeout: 10s        # CTM_TLS_HS_TIMEOUT
+    keep-alive-interval: 10s          # CTM_KEEP_ALIVE_INTERVAL (1–10 s): GET STATUS after this much silence (TIP1-A_4536)
+    keep-alive-try-count: 3           # CTM_KEEP_ALIVE_TRY_COUNT (3–10): unanswered heartbeats until the connection is closed
+    supported-kt-versions: [1.0.0]    # CTM_SUPPORTED_KT_VERSIONS (EHEALTH interface version from GET STATUS)
+
+  # Card images (LIANA-98): all *.xml of these folders, indexed at startup by file name and ICCSN (EF.GDO).
+  # Values below, in the Admin API and with CATS: file name (egk-valid, egk-valid.xml; the same name in several folders:
+  # the first one wins), ICCSN (20 digits, must be unique) or absolute path. Override: LIANA_CARD_IMAGES=a,b
+  card-images:
+    - ./support/images
+    - ./support/images/gsmc-kt          # gSMC-KTs for gsmc-kt, not in the workdir of kartos terminal (LIANA-28)
+    - ./support/images/g20              # cards G2.0 (RSA), not in the workdir either (LIANA-112.12)
+    - ./support/images/gsmc-k           # gSMC-K for gsmc-k.image, not in the workdir either (LIANA-112.13)
+    - ./support/images/kvk              # KVK (memory card, fake KT only), not in the workdir either (LIANA-113)
+    - /opt/liana/images
+    - /opt/liana/images/gsmc-kt
+    - /opt/liana/images/g20
+    - /opt/liana/images/gsmc-k
+    - /opt/liana/images/kvk
+
+  # Cards and identities in the structure of the TI (LIANA-98, decision-14), the only place for identities.
+  infrastructure:
+    konnektor:
+      gsmc-k:                  # identities of the Konnektor; without a gSMC-K image PKCS#12 for now (tools/pki/), in the container /opt/liana/pki/server/…
+        ak-aut: ./support/pki/server/ak-aut-p256.p12       # ID.AK.AUT: Konnektor TLS and KMS; brainpoolP256r1: ak-aut-bp256.p12
+        ak-aut-rsa: ./support/pki/server/ak-aut-rsa.p12    # ID.AK.AUT RSA, when TLS_USE_ECC_FOR_CS is off (LIANA-65)
+        sak-aut: ./support/pki/server/sak-aut-bp256.p12    # ID.SAK.AUT: TLS to the eHealth KTs (TUC_KON_050)
+        password: liana
+        image: gsmc-k          # gSMC-K image (card-images): PrK.SAK.AUTD_CVC.E256 for QES-Stapelsignatur and Komfortsignatur
+                               # in SE #2 via Trusted Channel (LIANA-112.13); without: SE #1 without Secure Messaging
+    terminals:                 # one per CT.CTID; type fake (card engine kartos) or sicct (eHealth KT, decision-11)
+      KT-01:
+        type: fake
+        slot-count: 3          # CT.SLOTCOUNT, slots 1..n
+        # pin: 123456          # PIN the simulated PIN pad enters on VerifyPin (default 123456)
+        # puk: 12345678        # PIN entry puk or transport (LIANA-68, Admin API pin-script, Robot enterPUK)
+        # transport-pin: 54321
+        # signature-time: 60ms # computing time of the card for PSO CDS (default none; qes.sh sets 60ms, KUC_1602_072)
+        gsmc-kt: gsmckt-root6  # gSMC-KT of the KT (LIANA-99): LIANA as the terminal in the Trusted Channel (LIANA-28)
+        slots:
+          1: egk-valid         # file name, ICCSN or absolute path (card-images)
+          2: smcb-valid        # SMC-B for the ZETA login of the popp-client (LIANA-29)
+      KT-02:
+        type: fake
+        slot-count: 2          # insert egk-expired/egk-revoked once the images exist (support/images/README.md)
+        gsmc-kt: gsmckt-root6
+      # KT-03:                 # eHealth KT via SICCT: device data via service discovery (TUC_KON_054/055)
+      #   type: sicct
+      #   host: kartos-terminal
+      #   shared-secret: 00112233445566778899AABBCCDDEEFF   # existing pairing (CT.SHARED_SECRET), otherwise Admin API
+
+  # .kon export (support/kon/kon-format.md, v1.0.0) – GET /admin/clients/{clientSystemId}/config.kon
+  kon-export:
+    url: http://localhost:8080          # as clients reach LIANA (in the Docker network e.g. http://liana:8080)
+    rewrite-service-endpoints: true
+    credentials:                         # phase 0/1: the format requires credentials, LIANA does not evaluate basic yet
+      type: basic
+      username: liana
+      password: liana
+
+# Tests: HTTP, management port (Admin API, KMS, CATS) and TLS on a free port (AdminServer.port()), replay CA for self-signed
+# scenarios, short CARD_TIMEOUT_CARD for the tests with a delayed card (4094), HBA in KT-01/3 (Postman FF_005, LIANA-56)
+"%test":
+  quarkus:
+    http:
+      test-port: 0             # free port, so that a running Testhub (popp-client on 8081) does not interfere
+      test-ssl-port: 0
+  liana:
+    admin:
+      port: 0
+    tls:
+      port: 0
+    infrastructure:
+      terminals:
+        KT-01:
+          slots:
+            3: hba-valid
+    card:
+      card-timeout: 1s
+    pki:
+      imported-cas: [./support/pki/replay/replay-ca.pem]

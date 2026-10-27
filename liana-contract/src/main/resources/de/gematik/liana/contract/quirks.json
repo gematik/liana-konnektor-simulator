@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "description": "Bekannte Abweichungen realer Konnektoren und von LIANA je Produkt (LIANA-134). Jeder Eintrag nennt seine Quelle (Trace, Suite-Erwartung, decision). Treffer: ProductVendorID und, falls angegeben, ProductCode aus connector.sds; der spezifischere Eintrag gewinnt.",
+  "products": [
+    {
+      "id": "KOCO",
+      "name": "KoCoBox (CGM)",
+      "vendorId": "KOCOC",
+      "quirks": [
+        {
+          "id": "error.unknown-client-system",
+          "kind": "error-code",
+          "description": "Unbekanntes Clientsystem als 4005 „Ungültige Clientsystem-ID“ statt 4021 (TAB_KON_514-01 Hinweis 3)",
+          "expected": "4021",
+          "actual": "4005",
+          "source": "Konnektor-QES KUC_1702_007.feature:35 (KOCO 4005, RISE/SECUNET 4021)"
+        },
+        {
+          "id": "sign.offline-warning",
+          "kind": "warning",
+          "description": "SignDocument offline (MGM_LU_ONLINE=Disabled) mit IncludeRevocationInfo=true oder als Parallelsignatur (auch online): Warnung 1039 „Offline-Modus, keine OCSP-Statusabfrage“ statt OK",
+          "expected": "OK",
+          "actual": "Warning 1039",
+          "source": "Konnektor-QES KUC_1601_026.feature (KOCO Warning 1039, RISE/SECUNET OK), KUC_1601_019.feature (Parallelsignatur: KOCO Warning, SECUNET OK), HSK_1601_019.feature (online, Parallelsignatur: KOCO Warning)"
+        },
+        {
+          "id": "sign.smime-unsupported",
+          "kind": "error-code",
+          "description": "SignDocument und VerifyDocument mit S/MIME: 4279 „SMIME-Funktionalität nicht unterstützt“ (ohne Schrägstrich) statt einer S/MIME-Signatur bzw. Prüfung (4111 bei QES)",
+          "expected": "4111",
+          "actual": "4279",
+          "source": "Konnektor-QES KUC_1601_001/009.feature, KUC_1602_018.feature (RISE 4110, SECUNET 4111), KUC_1603_001/010.feature, jeweils Szenario „(KOCO)“"
+        }
+      ]
+    },
+    {
+      "id": "RISE",
+      "name": "RISE Konnektor",
+      "vendorId": "RISEG",
+      "quirks": [
+        {
+          "id": "error.empty-user-id",
+          "kind": "error-code",
+          "description": "Leere UserId ist ohne MTOM ein Syntaxfehler 4000 statt 4003, mit MTOM 4003",
+          "expected": "4003",
+          "actual": "4000",
+          "source": "Konnektor-QES KUC_1701_008.feature, Szenario „(RISE)“; mit MTOM KUC_1701_031.feature"
+        },
+        {
+          "id": "sign.qes-format-first",
+          "kind": "error-code",
+          "description": "SignDocument QES prüft das Format Binär (4110) vor der Variante einer CMS-Signatur (ReturnUpdatedSignature, IncludeObjects: 4111)",
+          "expected": "4111",
+          "actual": "4110",
+          "source": "Konnektor-QES KUC_1602_045.feature, Szenario „(RISE, SECUNET)“ (KOCO 4111)"
+        },
+        {
+          "id": "sign.qes-format-mismatch",
+          "kind": "error-code",
+          "description": "SignDocument QES meldet ein zum Signaturtyp unpassendes Format (PAdES ohne PDF/A, S/MIME) als 4110 „ungültiges Dokumentformat“ statt 4111",
+          "expected": "4111",
+          "actual": "4110",
+          "source": "Konnektor-QES KUC_1602_018.feature (S/MIME), KUC_1602_019/021/022/023.feature (PAdES für Text bzw. ohne MIME-Typ), Szenarien „(RISE)“ (KOCO/SECUNET 4111)"
+        },
+        {
+          "id": "verify.malformed-xml",
+          "kind": "error-code",
+          "description": "VerifyDocument meldet ein nicht wohlgeformtes XML-Dokument (Base64XML) als 4111 „Ungültiger Signaturtyp oder Signaturvariante“ statt 4022 (TUC_KON_080 (A))",
+          "expected": "4022",
+          "actual": "4111",
+          "source": "Konnektor-QES KUC_1604_011.feature (PDF als Base64XML), Szenario „(RISE)“ (KOCO/SECUNET 4022)"
+        }
+      ]
+    },
+    {
+      "id": "SECUNET",
+      "name": "secunet konnektor",
+      "vendorId": "SECUN",
+      "quirks": [
+        {
+          "id": "sds.wsdl-target-namespace",
+          "kind": "service-directory",
+          "description": "TargetNamespace im Dienstverzeichnis ist der WSDL-Namensraum (…/WSDL/v8.2), nicht der Schema-Namensraum",
+          "source": "support/vendor/traces/vsdm/vsdm-read-secunet.tgr (secu_kon FW 6.0.8, TU-Lab, LIANA-101)"
+        },
+        {
+          "id": "sign.qes-format-first",
+          "kind": "error-code",
+          "description": "SignDocument QES prüft das Format Binär (4110) vor der Variante einer CMS-Signatur (ReturnUpdatedSignature, IncludeObjects: 4111)",
+          "expected": "4111",
+          "actual": "4110",
+          "source": "Konnektor-QES KUC_1602_045.feature, Szenario „(RISE, SECUNET)“ (KOCO 4111)"
+        }
+      ]
+    },
+    {
+      "id": "LIANA",
+      "name": "LIANA Konnektor-Simulator, neutrales Profil",
+      "vendorId": "LIANA",
+      "productCode": "LIANA",
+      "includes": ["LIANA-MISSING"]
+    },
+    {
+      "id": "LIANA-KOCO",
+      "name": "LIANA, Herstellerprofil KOCO",
+      "vendorId": "KOCOC",
+      "productCode": "LIANA",
+      "includes": ["KOCO", "LIANA-MISSING"]
+    },
+    {
+      "id": "LIANA-RISE",
+      "name": "LIANA, Herstellerprofil RISE",
+      "vendorId": "RISEG",
+      "productCode": "LIANA",
+      "includes": ["RISE", "LIANA-MISSING"]
+    },
+    {
+      "id": "LIANA-SECUNET",
+      "name": "LIANA, Herstellerprofil SECUNET",
+      "vendorId": "SECUN",
+      "productCode": "LIANA",
+      "includes": ["LIANA-MISSING"],
+      "quirks": [
+        {
+          "id": "sign.qes-format-first",
+          "kind": "error-code",
+          "description": "SignDocument QES prüft das Format Binär (4110) vor der Variante einer CMS-Signatur (4111), wie secunet",
+          "expected": "4111",
+          "actual": "4110",
+          "source": "Konnektor-QES KUC_1602_045.feature, Szenario „(RISE, SECUNET)“ (KOCO 4111)"
+        }
+      ]
+    },
+    {
+      "id": "LIANA-MISSING",
+      "name": "Operationen, die LIANA nicht umsetzt (decision-12)",
+      "abstract": true,
+      "unsupported": [
+        {"operation": "GetResourceInformation", "source": "decision-12, EventServiceResource"},
+        {"operation": "CheckCertificateExpiration", "source": "decision-12, CertificateServiceResource"},
+        {"operation": "VerifyCertificate", "source": "decision-12, CertificateServiceResource (LIANA-136)"}
+      ],
+      "accessCheckOnly": [
+        {"operation": "SignDocument", "source": "decision-12, SoapFaults.afterAccessCheck (LIANA-60)"},
+        {"operation": "VerifyDocument", "source": "decision-12, CAdES seit LIANA-112.07, PAdES seit LIANA-112.08, XAdES seit LIANA-112.09, S/MIME seit LIANA-112.10; detached XML-Signaturen nach der Zugriffsprüfung"},
+        {"operation": "EncryptDocument", "source": "decision-12, SoapFaults.afterAccessCheck (LIANA-60)"},
+        {"operation": "DecryptDocument", "source": "decision-12, SoapFaults.afterAccessCheck (LIANA-60)"}
+      ]
+    }
+  ]
+}

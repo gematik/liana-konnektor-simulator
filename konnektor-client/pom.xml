@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>de.gematik.liana</groupId>
+    <artifactId>liana-parent</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>konnektor-client</artifactId>
+  <name>LIANA Konnektor-Client</name>
+  <description>Java client for the external interface of the Konnektor (SOAP, CETP, .kon configuration)</description>
+
+  <!-- published under Apache 2.0 (LIANA-140) -->
+  <licenses>
+    <license>
+      <name>Apache-2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+
+  <!-- Client of the external interface of the Konnektor (LIANA-130). Depends only on liana-contract, JAXB and
+       BouncyCastle (Brainpool TLS, LIANA-133); Java 17 for Primärsysteme (decision-016). -->
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <tiger.version>4.4.5</tiger.version>
+    <!-- deployed without parent: dependencies with resolved versions, no Quarkus BOM for the user (LIANA-142) -->
+    <flatten.mode>ossrh</flatten.mode>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-contract</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>jakarta.xml.bind</groupId>
+      <artifactId>jakarta.xml.bind-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jaxb</groupId>
+      <artifactId>jaxb-runtime</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk18on</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bctls-jdk18on</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- LIANA-133 AC 2: traffic via a Tiger proxy, only in the IT (-DskipITs=false) -->
+    <dependency>
+      <groupId>de.gematik.test</groupId>
+      <artifactId>tiger-proxy</artifactId>
+      <version>${tiger.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <!-- no JBoss LogManager: the client modules do not know Quarkus -->
+          <systemPropertyVariables combine.self="override">
+            <java.util.logging.config.file>${project.basedir}/src/test/resources/logging.properties</java.util.logging.config.file>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables combine.self="override" />
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <!-- LIANA-131 AC 3: runtime dependencies only from this list, test scope unrestricted (but without LIANA) -->
+          <execution>
+            <id>vereinbarte-abhaengigkeiten</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <bannedDependencies>
+                  <excludes>
+                    <exclude>*</exclude>
+                  </excludes>
+                  <includes>
+                    <include>de.gematik.liana:liana-contract</include>
+                    <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
+                    <include>jakarta.activation:jakarta.activation-api</include>
+                    <include>org.glassfish.jaxb:jaxb-runtime</include>
+                    <include>org.glassfish.jaxb:jaxb-core</include>
+                    <include>org.glassfish.jaxb:txw2</include>
+                    <include>com.sun.istack:istack-commons-runtime</include>
+                    <include>org.eclipse.angus:angus-activation</include>
+                    <include>org.bouncycastle:bcprov-jdk18on</include>
+                    <include>org.bouncycastle:bcpkix-jdk18on</include>
+                    <include>org.bouncycastle:bctls-jdk18on</include>
+                    <include>org.bouncycastle:bcutil-jdk18on</include>
+                    <include>*:*:*:*:test</include>
+                  </includes>
+                  <message>konnektor-client: Laufzeitabhängigkeit außerhalb der vereinbarten Liste (LIANA-131, decision-016)</message>
+                </bannedDependencies>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- LIANA-155.01: sources and javadoc for Maven Central -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+      </plugin>
+      <!-- LIANA-135: examples/ as test sources, one runnable example per operation -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+          <execution>
+            <id>examples</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.basedir}/examples</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- LIANA-132: JAXB bindings from support/schemas (decision-016), packages and catalog in src/main/xjb -->
+      <plugin>
+        <groupId>org.jvnet.jaxb</groupId>
+        <artifactId>jaxb-maven-plugin</artifactId>
+        <version>${jaxb-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>bindings</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <schemaDirectory>${project.basedir}/../support/schemas</schemaDirectory>
+          <schemaIncludes>
+            <include>conn/EventService.xsd</include>
+            <!-- v8.1 comes through the import of CardService.xsd, from 8.1.3 via the catalog (catalog.xml) -->
+            <include>conn/CardService_v8_2_1.xsd</include>
+            <include>conn/CardTerminalService.xsd</include>
+            <include>conn/CertificateService_v6_0_2.xsd</include>
+            <include>conn/SignatureService_V7_4_5.xsd</include>
+            <include>conn/SignatureService_V7_5_6.xsd</include>
+            <include>conn/EncryptionService_v6_1_2.xsd</include>
+            <include>conn/ServiceDirectory.xsd</include>
+            <include>conn/vsds/VSDService.xsd</include>
+          </schemaIncludes>
+          <bindingDirectory>${project.basedir}/src/main/xjb</bindingDirectory>
+          <catalog>${project.basedir}/src/main/xjb/catalog.xml</catalog>
+          <strict>false</strict>
+          <noFileHeader>true</noFileHeader>
+          <episode>false</episode>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

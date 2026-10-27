@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>de.gematik.liana</groupId>
+    <artifactId>liana-parent</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>liana-trace-tests</artifactId>
+  <name>LIANA Golden-Trace-Tests</name>
+
+  <!-- Replay golden traces (.tgr) against the built LIANA (decision-9). Tests only, Rbel only here. -->
+  <properties>
+    <!-- not deployed to Nexus, only the client artifacts are (LIANA-142) -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+    <tiger.version>4.4.5</tiger.version>
+    <!-- matching the slf4j-api that tiger-rbel gets through the Quarkus BOM -->
+    <slf4j.version>2.0.17</slf4j.version>
+    <!-- trace tests always run, also without -Dnative -->
+    <skipITs>false</skipITs>
+    <liana.runner>${liana.root}/liana-app/target/quarkus-app/quarkus-run.jar</liana.runner>
+  </properties>
+
+  <dependencies>
+    <!-- KartosLocator: the same kartos resolution as LIANA (LIANA-121) -->
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-fake-terminal</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- only for the order in the reactor: liana-app is built before the traces run -->
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-app</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.test</groupId>
+      <artifactId>tiger-rbel</artifactId>
+      <version>${tiger.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- JSON of the signed scenarios (ReplaceSteps); comes with tiger-rbel, explicit here -->
+    <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>3.1.5</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <!-- without the JBoss LogManager from the parent: no Quarkus runs here, Rbel logs via slf4j-simple -->
+          <systemPropertyVariables combine.self="override">
+            <liana.runner>${liana.runner}</liana.runner>
+            <org.slf4j.simpleLogger.defaultLogLevel>warn</org.slf4j.simpleLogger.defaultLogLevel>
+            <!-- RbelElementAssertion.andPrintTree() shows the Rbel tree on failure -->
+            <org.slf4j.simpleLogger.log.de.gematik.rbellogger.testutil>info</org.slf4j.simpleLogger.log.de.gematik.rbellogger.testutil>
+          </systemPropertyVariables>
+        </configuration>
+        <executions>
+          <!-- LIANA-81: the terminal-dependent trace ITs once more, KT-01 as eHealth KT kartos terminal via SICCT;
+               the others find nothing new there or skip themselves (CATS, LIANA-93) (LIANA-124) -->
+          <execution>
+            <id>sicct</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <systemPropertyVariables combine.children="append">
+                <liana.trace.terminal>sicct</liana.trace.terminal>
+              </systemPropertyVariables>
+              <includes>
+                <include>**/PoppKonTuIT.java</include>
+                <include>**/TrafficPushIT.java</include>
+              </includes>
+              <reportsDirectory>${project.build.directory}/failsafe-reports-sicct</reportsDirectory>
+              <summaryFile>${project.build.directory}/failsafe-reports-sicct/failsafe-summary.xml</summaryFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>native</id>
+      <activation>
+        <property>
+          <name>native</name>
+        </property>
+      </activation>
+      <properties>
+        <liana.runner>${liana.root}/liana-app/target/liana-app-${revision}-runner</liana.runner>
+      </properties>
+      <!-- LIANA-124: against the runner each class once; the terminal-dependent ones only via SICCT, the only
+           SICCT run against the binary -->
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>default</id>
+                <configuration>
+                  <excludes>
+                    <exclude>**/PoppKonTuIT.java</exclude>
+                    <exclude>**/TrafficPushIT.java</exclude>
+                  </excludes>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <!-- LIANA-67: CatsStepsIT, QesEventIT and QesInfomodelIT call the unchanged CATS steps in the version of the
+         Konnektor-QES suite. tiger-cats-extensions is not on Maven Central, so the tests live under
+         src/test-cats/java and are not published on GitHub (.githubignore); without the folder, the dependency
+         and the tests are left out as well. -->
+    <profile>
+      <id>cats</id>
+      <activation>
+        <file>
+          <exists>${project.basedir}/src/test-cats</exists>
+        </file>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>de.gematik</groupId>
+          <artifactId>tiger-cats-extensions</artifactId>
+          <version>1.4.0-171</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>3.6.1</version>
+            <executions>
+              <execution>
+                <id>cats-tests</id>
+                <phase>generate-test-sources</phase>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/test-cats/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

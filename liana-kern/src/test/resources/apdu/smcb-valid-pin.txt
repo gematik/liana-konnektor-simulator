@@ -1,0 +1,5 @@
+# smcb-valid.xml via kartos 0.6.3 pipe: VERIFY PIN.SMC with 123456 (simulated PIN pad, LIANA-31). Per line: command response
+# kartos 0.7.1 pipe (LIANA-63): GET PIN STATUS PIN.SMC before each VERIFY (Fehlbedienungszähler 3)
+# 2026-10-23 recorded again with kartos 0.8.0 pipe: smcb-valid is now the public SMC-B 80276883110000168650 from gematik/ti2.0-testhub
+002000010826123456FFFFFFFF 9000
+80200001 63C3

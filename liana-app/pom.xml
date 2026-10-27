@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>de.gematik.liana</groupId>
+    <artifactId>liana-parent</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>liana-app</artifactId>
+  <name>LIANA App</name>
+
+  <properties>
+    <!-- not deployed to Nexus, only the client artifacts are (LIANA-142) -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+  </properties>
+
+  <!-- Quarkus-Anwendung: Konfiguration liana.*, Verdrahtung, Krypto, Native Image (decision-1, decision-8) -->
+  <dependencies>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-kern</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-fake-terminal</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-sicct</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-cetp</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-vsdm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-sds</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-adapter-soap</artifactId>
+    </dependency>
+    <!-- LIANA-48: XSD and WSDL for validating incoming SOAP requests -->
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-contract</artifactId>
+    </dependency>
+
+    <!-- Laufzeit -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-config-yaml</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-security</artifactId>
+    </dependency>
+
+    <!-- Crypto: versions come from the Quarkus BOM. Brainpool TLS needs BCJSSE. -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk18on</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bctls-jdk18on</artifactId>
+    </dependency>
+    <!-- PAdES and PDF/A identification (decision-020, LIANA-112.08) -->
+    <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+      <version>${pdfbox.version}</version>
+    </dependency>
+
+    <!-- Test -->
+    <!-- LIANA-133: the Konnektor client against LIANA (direction client → LIANA only in tests, decision-016) -->
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>konnektor-client</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <!-- LIANA-138: the control client against the Admin API -->
+    <dependency>
+      <groupId>de.gematik.liana</groupId>
+      <artifactId>liana-control-client</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+              <goal>generate-code</goal>
+              <goal>generate-code-tests</goal>
+              <goal>native-image-agent</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <!-- quarkus:dev in the repository root, so that ./support/images is found -->
+          <workingDir>${liana.root}</workingDir>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <systemPropertyVariables>
+            <native.image.path>${project.build.directory}/${project.build.finalName}-runner</native.image.path>
+          </systemPropertyVariables>
+          <!-- *KartosIT run in their own execution kartos-its -->
+          <excludes>
+            <exclude>**/*KartosIT.java</exclude>
+          </excludes>
+        </configuration>
+        <executions>
+          <!-- ITs against kartos as a separate process (LIANA-75): like the kartos ITs of the adapters in every
+               ./mvnw verify, not only with -Dnative; they need no built LIANA -->
+          <execution>
+            <id>kartos-its</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <skipITs>${skipKartosITs}</skipITs>
+              <excludes combine.self="override"/>
+              <includes>
+                <include>**/*KartosIT.java</include>
+              </includes>
+              <summaryFile>${project.build.directory}/failsafe-reports/failsafe-summary-kartos.xml</summaryFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Licenses of the runtime dependencies against the allowlist in the parent (OSPO): liana-app is what the
+           Docker image and the native image ship -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>license-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!-- LIANA-53: kms-client (de.gematik.kms, not public) as a test dependency. Only with -Pkms-client and a
+         locally installed kms-client (docs/handbuch.md, section "KMS"); tests under src/test-kms/java, which is
+         not published on GitHub (.githubignore). -->
+    <profile>
+      <id>kms-client</id>
+      <dependencies>
+        <dependency>
+          <groupId>de.gematik.kms</groupId>
+          <artifactId>kms-client</artifactId>
+          <version>1.1.0-SNAPSHOT</version>
+          <scope>test</scope>
+          <exclusions>
+            <!-- StAX is part of the JDK; the old API jar (via jersey-json/jaxb-api) breaks the Quarkus startup -->
+            <exclusion>
+              <groupId>javax.xml.stream</groupId>
+              <artifactId>stax-api</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>3.6.1</version>
+            <executions>
+              <execution>
+                <id>kms-client-tests</id>
+                <phase>generate-test-sources</phase>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/test-kms/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
