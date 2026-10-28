@@ -2,6 +2,12 @@
 
 # Release Notes liana-konnektor-simulator
 
+## Release 0.7.22 (2026-10-28)
+
+### other
+
+- The exclusion list for the license header check (.dependencyLicenses) is published, so the bundled third-party code in liana-app gui/vendor passes the check on GitHub
+
 ## Release 0.7.21 (2026-10-28)
 
 ### other
