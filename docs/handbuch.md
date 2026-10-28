@@ -420,6 +420,8 @@ Liest LIANA eine gesteckte Karte nicht oder erkennt sie nicht, führt TUC_KON_00
 
 ## Docker
 
+Für Anwender (englisch, mit Beispielen zu Konfiguration und TLS): [`docs/docker.md`](docker.md). Hier der Laufzeitvertrag und der Build.
+
 Alle Images haben denselben Laufzeitvertrag: Arbeitsverzeichnis `/work`, Konfiguration `/work/config/application.yaml` (überlagert die eingebaute), Kartenimages `/opt/liana/images`, TSL und BNetzA-VL `/opt/liana/pki` (`LIANA_PKI_TSL`, `LIANA_PKI_BNETZA_VL`; die TSL zieht der Image-Build frisch, siehe unten), Identitäten der gSMC-K und Client-Zertifikate `/opt/liana/pki/server`, `/opt/liana/pki/clients` (`LIANA_INFRASTRUCTURE_KONNEKTOR_GSMC_K_AK_AUT`, `…_AK_AUT_RSA`, `…_SAK_AUT`, `LIANA_TLS_CLIENT_CERTS`), kartos `/opt/liana/bin/kartos`, Ports 8080 (HTTP), 8443 (HTTPS), 9090 (Management: Admin-API, KMS und CATS), User 1001. Im Testhub-Setup wechselt man nur den Image-Tag.
 
 TSL (LIANA-180): Beide Dockerfiles ziehen in der Stufe `tsl` die RU-TSL (`TSL_URL`, Standard `https://download-ref.tsl.ti-dienste.de/ECC/ECC-RSA_TSL-ref.xml`, `tools/pki/tsl-fetch.sh`) und backen sie ein. Ist sie nicht erreichbar, unvollständig, ohne CA-Zertifikate oder ihre TSLSequenceNumber kleiner als die der eingecheckten `support/pki/tsl/ECC-RSA_TSL-ref.xml`, nimmt der Build die eingecheckte Kopie; er bricht nie ab. Quelle und SequenceNumber stehen im Build-Log (`WARNUNG TSL: …` beim Rückfall, `--progress=plain`). Die Stufe läuft neu, wenn sich `TSL_REFRESH` ändert (CI: Build-Nummer), lokal gilt sonst der Build-Cache. Tests laufen immer gegen die eingecheckte Kopie. Beim Start lädt LIANA standardmäßig nur die eingebackene TSL; `liana.pki.tsl-online.mode` (Env `LIANA_PKI_TSL_ONLINE_MODE`) holt sie zusätzlich online (`url`, Standard RU, `timeout` 10 s): `background` nach dem Start, bei Erfolg tauscht LIANA die CAs der TSL, bei einem Fehler oder einer älteren TSL arbeitet es mit der eingebackenen weiter (Warnung); `enforce` holt synchron und bricht ohne lesbare TSL den Start ab. Die Signatur der TSL prüft LIANA in keinem Fall.
@@ -643,18 +645,17 @@ Die Einträge stehen nur im Protokoll (`GET /admin/log`, KMS-Log-Download), nich
 
 ## Konnektor-Client (Maven)
 
-Die Client-Artefakte (LIANA-130, decision-016) sind noch nicht auf Maven Central. Bis dahin im LIANA-Repo installieren, `./mvnw install -pl konnektor-client -am -DskipTests`, und die Version aus `pom.xml` nehmen:
+`konnektor-client` liegt mit `liana-contract` (WSDL/XSD) auf Maven Central (LIANA-155), in der Version des LIANA-Release:
 
 ```xml
 <dependency>
   <groupId>de.gematik.liana</groupId>
   <artifactId>konnektor-client</artifactId>
-  <!-- revision aus pom.xml -->
-  <version>0.7.7</version>
+  <version>0.7.17</version>
 </dependency>
 ```
 
-Ebenso `liana-contract` (WSDL/XSD) und `liana-control-client` (Admin-API).
+`liana-control-client` (Admin-API) ist nicht veröffentlicht; im LIANA-Repo installieren, `./mvnw install -pl liana-control-client -am -DskipTests`, und die Version aus `pom.xml` nehmen.
 
 ```java
 try (Konnektor kon = Konnektor.fromKon(Path.of("praxis.kon"))) {      // .kon v1.0.0, ${VAR} aus der Umgebung

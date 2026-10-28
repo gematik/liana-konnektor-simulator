@@ -1,6 +1,6 @@
 # LIANA – Architektur
 
-Stand: **0.7.17** (Property `revision` in `pom.xml`). Das Diagramm zeigt, was im Code existiert. Geplantes ist gestrichelt und nennt Ticket oder Phase. Wer Komponenten, Ports, Schnittstellen oder externe Prozesse ändert, ändert dieses Dokument im selben Commit; jeder Commit, der die Version hebt, zieht die Stand-Zeile nach.
+Stand: **0.7.21** (Property `revision` in `pom.xml`). Das Diagramm zeigt, was im Code existiert. Geplantes ist gestrichelt und nennt Ticket oder Phase. Wer Komponenten, Ports, Schnittstellen oder externe Prozesse ändert, ändert dieses Dokument im selben Commit; jeder Commit, der die Version hebt, zieht die Stand-Zeile nach.
 
 ## Komponenten
 

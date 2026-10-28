@@ -2,6 +2,30 @@
 
 # Release Notes liana-konnektor-simulator
 
+## Release 0.7.21 (2026-10-28)
+
+### other
+
+- Internal documentation of the release process (order of the release and publish jobs, checks, recovery)
+
+## Release 0.7.20 (2026-10-28)
+
+### other
+
+- README and manual name the Maven Central coordinates of konnektor-client (de.gematik.liana:konnektor-client, with liana-contract)
+
+## Release 0.7.19 (2026-10-28)
+
+### other
+
+- The README starts with the published Docker image; the new page docs/docker.md describes running it: ports, configuration through YAML and environment variables, own card images, TLS (server identities, mandatory TLS, client certificates, .kon export with client certificate) and Docker Compose
+
+## Release 0.7.18 (2026-10-27)
+
+### fixed
+
+- Publication: the DockerHub push logs in with the write token of the gematik1 organisation
+
 ## Release 0.7.17 (2026-10-27)
 
 ### added

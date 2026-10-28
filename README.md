@@ -53,30 +53,47 @@ See [ReleaseNotes.md](./ReleaseNotes.md) for all information regarding the (newe
 
 ### Prerequisites
 
-- Docker, or Java 21 to build and run LIANA locally
+- Docker to run LIANA, or Java 21 to build and run it from source
 - Java 17 or later to use the client libraries
 
 ### Installation
 
-Build and start the Docker image (no local JDK needed):
+The main way to run LIANA is the Docker image [`gematik1/liana`](https://hub.docker.com/r/gematik1/liana). It
+contains the card engine kartos, test cards, the test PKI and a current TSL, so nothing else is needed:
 
 ```bash
-docker build -t liana:dev .
-docker run --rm -p 8080:8080 -p 8443:8443 -p 9090:9090 liana:dev
+docker run --rm --name liana -p 8080:8080 -p 8443:8443 -p 9090:9090 gematik1/liana:latest
 curl -s localhost:9090/admin/ready   # {"ready":true}
 ```
 
-Or build and run with Maven:
+The image is built for `linux/amd64`; on Apple Silicon add `--platform linux/amd64`. Configuration (YAML file or
+environment variables), your own card images, TLS with client certificates and a Docker Compose example are
+described in [docs/docker.md](./docs/docker.md).
+
+To build from source, either build the image yourself (no local JDK needed) or use Maven:
 
 ```bash
+docker build -t liana:dev .
 ./mvnw verify          # build and run the tests
 ./mvnw quarkus:dev     # start LIANA in development mode
 ```
 
-The client libraries are installed into the local Maven repository with:
+The connector client is on Maven Central (it brings `liana-contract` with the WSDL and XSD files along); use the
+version of the LIANA release:
+
+```xml
+<dependency>
+  <groupId>de.gematik.liana</groupId>
+  <artifactId>konnektor-client</artifactId>
+  <version>0.7.17</version>
+</dependency>
+```
+
+The client for the Admin API, `liana-control-client`, is not published yet; install it into the local Maven
+repository with:
 
 ```bash
-./mvnw install -pl konnektor-client,liana-control-client -am -DskipTests
+./mvnw install -pl liana-control-client -am -DskipTests
 ```
 
 ## Usage
@@ -109,6 +126,7 @@ liana.reset();
 
 For more examples or in-depth documentation, please refer to:
 
+- [docs/docker.md](./docs/docker.md): running the Docker image: ports, configuration, card images, TLS, Compose
 - [docs/handbuch.md](./docs/handbuch.md): the full manual (German): ports, Admin API, KMS, TLS, Docker
   configuration, card images, Testhub setups
 - [docs/architektur.md](./docs/architektur.md): architecture diagram
