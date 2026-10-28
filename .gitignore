@@ -23,9 +23,6 @@ backlog/
 # Jenkins pipeline for the internal CI (Artifact Registry, Nexus deployment)
 jenkinsfiles/
 tools/ci/
-# Exclusions for the OSPO license header check in Jenkins (bundled third-party code, gui/vendor/); the OSPO guideline
-# 'Publishing on GitHub' recommends keeping this file internal
-.dependencyLicenses
 # Suppressions for the OWASP Dependency Check in Jenkins (false CPE matches, LIANA-204)
 .owaspignore
 # Notes that only work with gematik access (registry, Nexus, testhub branch, backlog)
