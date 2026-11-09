@@ -68,7 +68,7 @@ public class KonnektorTlsServerTest {
             .getList(
                 "ConnectorServices.ServiceInformation.Service.Versions.Version.EndpointTLS.@Location")
             .stream()
-            .allMatch(l -> l.toString().startsWith("https://localhost:8443/ws/")));
+            .allMatch(l -> l.toString().startsWith("https://localhost:" + tls.port() + "/ws/")));
   }
 
   @Test

@@ -22,12 +22,13 @@ to run the image.
 |---|---|
 | Image | [`gematik1/liana`](https://hub.docker.com/r/gematik1/liana) on Docker Hub |
 | Tags | the LIANA version (e.g. `0.7.17`, see [ReleaseNotes.md](../ReleaseNotes.md)) and `latest` |
-| Platform | `linux/amd64` |
+| Platform | `linux/amd64`, any CPU with x86-64-v2 (Intel and AMD since about 2009), also under emulation |
 | User | 1001, working directory `/work` |
 | Health check | built in (`GET /admin/ready` on the management port) |
 
-On Apple Silicon add `--platform linux/amd64`; Docker runs the image under emulation, start-up then takes a few
-seconds longer. Pin a version tag in test setups so that a new release does not change your tests unnoticed.
+On Apple Silicon add `--platform linux/amd64`; Docker runs the image under emulation (Rosetta or QEMU), start-up
+then takes a few seconds longer. The native binary needs no AVX; the floor x86-64-v2 comes from the glibc of the base
+image. Pin a version tag in test setups so that a new release does not change your tests unnoticed.
 
 ## Quick start
 
@@ -91,8 +92,11 @@ Frequently used settings:
 
 | Key (environment variable) | Default | Meaning |
 |---|---|---|
-| `liana.kon-export.url` (`LIANA_KON_EXPORT_URL`) | `http://localhost:8080` | address under which clients reach the HTTP port; goes into `connector.sds` and the `.kon` export. In a Docker network e.g. `http://liana:8080` |
-| `liana.tls.url` (`LIANA_TLS_URL`) | `https://localhost:8443` | the same for the HTTPS port |
+| `liana.kon-export.url` (`LIANA_KON_EXPORT_URL`) | from the request | fixed address under which clients reach the HTTP port; goes into `connector.sds` and the `.kon` export ([Endpoints in connector.sds](#endpoints-in-connectorsds)) |
+| `liana.tls.url` (`LIANA_TLS_URL`) | from the request | the same for the HTTPS port |
+| `liana.endpoints.public-http-port` (`LIANA_ENDPOINTS_PUBLIC_HTTP_PORT`) | `quarkus.http.port` | port under which clients reach the HTTP port, if a request cannot tell |
+| `liana.endpoints.public-tls-port` (`LIANA_ENDPOINTS_PUBLIC_TLS_PORT`) | `liana.tls.port` | the same for the HTTPS port |
+| `liana.endpoints.forwarded` (`LIANA_ENDPOINTS_FORWARDED`) | `true` | evaluate `Forwarded` and `X-Forwarded-*` |
 | `liana.env` (`LIANA_ENV`) | `ru` | environment `ru`, `tu` or `pu` in the `.kon` export |
 | `liana.vendor` (`LIANA_VENDOR`) | `neutral` | vendor profile: `neutral`, `EHEX`, `SECUNET`, `KOCO`, `CGM`, `RISE`; selects the KMS and vendor-specific behaviour |
 | `liana.infrastructure.terminals` | `KT-01`, `KT-02` | card terminals and the cards in their slots ([Card images](#card-images)) |
@@ -101,6 +105,30 @@ Frequently used settings:
 | `liana.trace.push-url` (`LIANA_TRACE_PUSH_URL`) | none | Tiger proxy that receives every card APDU, e.g. `http://host.docker.internal:6900` |
 | `liana.pki.tsl-online.mode` (`LIANA_PKI_TSL_ONLINE_MODE`) | `off` | fetch the RU TSL at start: `background` (fall back to the bundled one), `enforce` (fail without one) |
 | `liana.admin.port` (`LIANA_ADMIN_PORT`) | `9090` | management port inside the container |
+
+### Endpoints in connector.sds
+
+Clients take the service endpoints from `connector.sds`, so they must point to where the client actually reaches LIANA.
+Without configuration LIANA derives them from each request, in this order:
+
+1. `liana.kon-export.url` (`Endpoint`) and `liana.tls.url` (`EndpointTLS`), if set;
+2. `Forwarded` (RFC 7239) or `X-Forwarded-Host`, `-Proto`, `-Port`, unless `liana.endpoints.forwarded` is `false`;
+3. the `Host` header.
+
+A request names the port of its own scheme only. With a port mapping, set the public port of the other scheme:
+
+```bash
+docker run --rm -p 28080:8080 -p 28443:8443 -p 9090:9090 \
+  -e LIANA_ENDPOINTS_PUBLIC_HTTP_PORT=28080 -e LIANA_ENDPOINTS_PUBLIC_TLS_PORT=28443 \
+  gematik1/liana:latest
+curl -s localhost:28080/connector.sds    # Endpoint http://localhost:28080/ws/..., EndpointTLS https://localhost:28443/ws/...
+```
+
+The `url` of the `.kon` export takes the host from the request to the management port and the public HTTP port. For an
+export with a client certificate, set `liana.kon-export.url` to the HTTPS address ([TLS](#tls)).
+
+This is a convenience of the simulator: the headers are not verified, and a real Konnektor reports its configured
+address.
 
 ## Card images
 
@@ -249,9 +277,6 @@ services:
       - "8080:8080"
       - "8443:8443"
       - "9090:9090"
-    environment:
-      LIANA_KON_EXPORT_URL: http://liana:8080
-      LIANA_TLS_URL: https://liana:8443
     volumes:
       - ./liana.yaml:/work/config/application.yaml:ro
     healthcheck:

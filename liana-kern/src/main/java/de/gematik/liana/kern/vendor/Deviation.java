@@ -67,7 +67,20 @@ public enum Deviation {
       "Konnektor-QES 0f274c4c (Testdaten)",
       "RFC 5652 5.4 messageDigest, TUC_KON_161/151 Schritt 2",
       "detached signiertes Dokument mit LF statt der signierten CRLF-Zeilenenden",
-      "CoreValidation mit CRLF-Zeilenenden wiederholen");
+      "CoreValidation mit CRLF-Zeilenenden wiederholen"),
+
+  /**
+   * Postman collection {@code ERezept_Testsuite Konnektor} of the tiger-erzp-testsuite calls {@code
+   * /ws/EventService/7.2.0} and {@code /ws/SignatureService/7.5.5} hard-wired instead of taking the
+   * endpoints from {@code connector.sds}. TIP1-A_4530 lets the Konnektor build its URLs as it
+   * likes; LIANA names only {@code /ws/<Service>}. Evaluated in {@code VersionedEndpointFilter}
+   * (LIANA-218, decision of the user).
+   */
+  HARDCODED_VERSIONED_ENDPOINT(
+      "Postman-Collection ERezept_Testsuite Konnektor (tiger-erzp-testsuite)",
+      "gemILF_PS TIP1-A_4967 Endpunkte aus dem Dienstverzeichnisdienst",
+      "fest verdrahteter Pfad /ws/<Dienst>/<Version>, den connector.sds nicht nennt",
+      "wie /ws/<Dienst> beantworten, die SOAP-Version bestimmt der Namensraum im Body");
 
   private final String peer;
   private final String spec;

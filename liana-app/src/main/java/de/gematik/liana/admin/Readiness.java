@@ -44,7 +44,7 @@ public class Readiness {
 
   /** Runs after all other startup observers. */
   void onStart(@Observes @Priority(Interceptor.Priority.PLATFORM_AFTER + 1000) StartupEvent event) {
-    serviceDirectory.get();
+    serviceDirectory.render();
     ready = true;
   }
 

@@ -43,7 +43,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * LIANA-133 AC 1: the Konnektor client reads the {@code .kon} export of LIANA ({@code basic}) and
- * calls GetCards via the rewritten endpoints.
+ * calls GetCards via the rewritten endpoints; the {@code url} comes from the request and the public
+ * HTTP port (LIANA-217 AC 5).
  */
 @QuarkusTest
 @TestProfile(KonnektorClientTest.Basic.class)
@@ -52,7 +53,7 @@ class KonnektorClientTest {
   public static class Basic implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
-      return TestPorts.config("liana.kon-export.url", "http://localhost:" + TestPorts.HTTP + "/");
+      return TestPorts.config("liana.endpoints.public-http-port", String.valueOf(TestPorts.HTTP));
     }
   }
 

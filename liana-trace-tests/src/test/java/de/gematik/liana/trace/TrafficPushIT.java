@@ -132,6 +132,14 @@ class TrafficPushIT {
         .toList();
   }
 
+  private static Object value(RbelElement message, String rbelPath) {
+    return message
+        .findElement(rbelPath)
+        .flatMap(RbelElement::seekValue)
+        .orElseThrow(
+            () -> new AssertionError(rbelPath + " fehlt in\n" + message.printTreeStructure()));
+  }
+
   private static String hex(RbelElement message, String rbelPath) {
     return message
         .findElement(rbelPath)
@@ -142,24 +150,43 @@ class TrafficPushIT {
 
   @Test
   @DisplayName(
-      "Rbel zerlegt das Kommando: CLA, INS, P1, P2 per RbelPath – die erste APDU ist SELECT eGK-Root")
+      "Rbel zerlegt das Kommando nach ISO 7816-4 (Tiger 4.5.0): die erste APDU ist SELECT eGK-Root, "
+          + "Fall 3 kurz mit Lc und Daten, ohne Le")
   void kommando() {
     RbelElement select = messages.getFirst();
     assertThat(hex(select, "$.messageType")).isEqualTo("6B");
-    assertThat(hex(select, "$.command.header.cla")).isEqualTo("00");
-    assertThat(hex(select, "$.command.header.ins")).isEqualTo("A4");
-    assertThat(hex(select, "$.command.header.p1")).isEqualTo("04");
-    assertThat(hex(select, "$.command.header.p2")).isEqualTo("0C");
-    assertThat(hex(select, "$.command.body")).startsWith("07D2760001448000");
+    assertThat(value(select, "$.command.name")).isEqualTo("SELECT");
+    assertThat(hex(select, "$.command.cla")).isEqualTo("00");
+    assertThat(hex(select, "$.command.ins")).isEqualTo("A4");
+    assertThat(hex(select, "$.command.p1")).isEqualTo("04");
+    assertThat(hex(select, "$.command.p2")).isEqualTo("0C");
+    assertThat(value(select, "$.command.case")).isEqualTo("3S");
+    assertThat(hex(select, "$.command.data")).startsWith("D2760001448000");
+    assertThat(value(select, "$.command.lc")).isEqualTo(hex(select, "$.command.data").length() / 2);
+    assertThat(select.findElement("$.command.le")).isEmpty();
+  }
+
+  @Test
+  @DisplayName("Kein Kommando ist <unknown>, und READ BINARY trägt sein Le als eigenes Element")
+  void kommandonamen() {
+    var commands = messages.stream().filter(m -> hex(m, "$.messageType").equals("6B")).toList();
+    assertThat(commands)
+        .allSatisfy(c -> assertThat(String.valueOf(value(c, "$.command.name"))).isNotBlank());
+    assertThat(commands).noneMatch(c -> c.printTreeStructure().contains("<unknown>"));
+    assertThat(commands)
+        .filteredOn(c -> "READ BINARY".equals(value(c, "$.command.name")))
+        .isNotEmpty()
+        .allSatisfy(c -> assertThat(c.findElement("$.command.le")).isPresent());
   }
 
   @Test
   @DisplayName(
-      "Rbel zerlegt die Antwort: Typ R_RESPONSE, Statuswort 9000 am Ende des Kommandoteils")
+      "Rbel zerlegt die Antwort: Typ R_RESPONSE, Statuswort 9000 als eigenes Element mit Bedeutung")
   void antwort() {
     RbelElement response = messages.get(1);
     assertThat(hex(response, "$.messageType")).isEqualTo("83");
-    assertThat(hex(response, "$.command")).endsWith("9000");
+    assertThat(hex(response, "$.response.sw")).isEqualTo("9000");
+    assertThat(value(response, "$.response.sw.meaning")).isEqualTo("Normal processing");
   }
 
   @Test
@@ -184,17 +211,18 @@ class TrafficPushIT {
   }
 
   @Test
-  @DisplayName("Paarung (AC5): ob Rbel die Antwort dem Kommando zuordnet, steht im Log des Tests")
-  @SuppressWarnings("java:S2699") // AC5 only asks for the result in the test log, see DisplayName
+  @DisplayName(
+      "Paarung: Rbel ordnet jede Antwort ihrem Kommando zu (SICCT-Sequenznummer und Adresse), "
+          + "auch bei gepushtem Verkehr")
   void paarung() {
-    var response = messages.get(1);
-    Optional<RbelElement> paired =
-        response.getFacet(TracingMessagePairFacet.class).map(TracingMessagePairFacet::getRequest);
-    System.out.println(
-        "LIANA-27 Paarung: Antwort gepaart = "
-            + paired.isPresent()
-            + (paired.isPresent()
-                ? ", mit Kommando = " + (paired.get() == messages.getFirst())
-                : ""));
+    for (int i = 0; i + 1 < messages.size(); i += 2) {
+      var command = messages.get(i);
+      Optional<RbelElement> paired =
+          messages
+              .get(i + 1)
+              .getFacet(TracingMessagePairFacet.class)
+              .map(TracingMessagePairFacet::getRequest);
+      assertThat(paired).as("Antwort %d", i + 1).containsSame(command);
+    }
   }
 }

@@ -48,6 +48,7 @@ import de.gematik.liana.kern.management.ClientSystemBinding;
 import de.gematik.liana.kern.management.ComfortSettings;
 import de.gematik.liana.kern.management.ManagementSettings;
 import de.gematik.liana.kern.management.OperatingState;
+import de.gematik.liana.kern.management.PublicEndpoints;
 import de.gematik.liana.kern.vendor.Deviation;
 import de.gematik.liana.kern.vendor.PeerDeviations;
 import de.gematik.liana.kern.vendor.Vendor;
@@ -70,6 +71,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.stream.IntStream;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -86,6 +88,7 @@ public class AdminApi {
   private final SicctTerminals sicctTerminals;
   private final VendorProfile vendor;
   private final PeerDeviations deviations;
+  private final PublicEndpoints endpoints;
   private final SystemLog systemLog;
   private final ManagementSettings settings;
   private final TlsIdentity tlsIdentity;
@@ -132,7 +135,9 @@ public class AdminApi {
       CryptoSelfTest selfTest,
       OnlineCheck onlineCheck,
       ComfortSettings comfort,
-      OperatingState operatingState) {
+      OperatingState operatingState,
+      PublicEndpoints endpoints) {
+    this.endpoints = endpoints;
     this.operatingState = operatingState;
     this.onlineCheck = onlineCheck;
     this.comfort = comfort;
@@ -672,9 +677,9 @@ public class AdminApi {
   /**
    * {@code .kon} for a Clientsystem: Aufrufkontext from the Informationsmodell (first workplace
    * with the Clientsystem, its first mandant), connection and credentials from {@code
-   * liana.kon-export}.
+   * liana.kon-export}; without a URL the host of the request with the public HTTP port (LIANA-217).
    */
-  Kon konConfig(String clientSystemId) {
+  Kon konConfig(String clientSystemId, UnaryOperator<String> headers) {
     var model = config.infomodel();
     if (!model.clientSystems().contains(clientSystemId)) {
       throw new IllegalArgumentException("unbekanntes Clientsystem '" + clientSystemId + "'");
@@ -693,7 +698,7 @@ public class AdminApi {
     var credentials = export.credentials();
     return new Kon(
         "1.0.0",
-        export.url(),
+        endpoints.forOtherPort(headers).http(),
         export.rewriteServiceEndpoints(),
         workplace.mandants().getFirst(),
         workplace.id(),

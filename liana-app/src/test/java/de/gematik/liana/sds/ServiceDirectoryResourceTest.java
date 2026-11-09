@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.RestAssured;
 import io.restassured.path.xml.XmlPath;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,6 +39,10 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 @QuarkusTest
 class ServiceDirectoryResourceTest {
+
+  /** The port of the test server, because the endpoints follow the request (LIANA-217). */
+  private static final java.util.function.Supplier<String> HTTP_BASE =
+      () -> "http://localhost:" + RestAssured.port;
 
   private static String connectorSds() {
     return given()
@@ -60,12 +65,12 @@ class ServiceDirectoryResourceTest {
   @DisplayName(
       "TIP1-A_4528 connector.sds nennt EventService, CardTerminalService (LIANA-110), CardService, "
           + "CertificateService, AuthSignatureService, SignatureService (LIANA-85), EncryptionService, VSDService "
-          + "(LIANA-119) und KVKService (LIANA-189.01, LIANA-113), mit Endpunkten aus kon-export.url")
+          + "(LIANA-119) und KVKService (LIANA-189.01, LIANA-113), mit Endpunkten aus dem Host des Requests")
   void servicesAndEndpoints() {
     XmlPath sds = new XmlPath(connectorSds());
     assertEquals(Services.NAMES, sds.getList("ConnectorServices.ServiceInformation.Service.@Name"));
     assertEquals(
-        Services.endpoints("http://localhost:8080"),
+        Services.endpoints(HTTP_BASE.get()),
         Services.NAMES.stream()
             .map(
                 name ->
@@ -122,7 +127,7 @@ class ServiceDirectoryResourceTest {
                         + numbers.get(i))
             .toList());
     assertEquals(
-        Collections.nCopies(numbers.size(), "http://localhost:8080/ws/" + service),
+        Collections.nCopies(numbers.size(), HTTP_BASE.get() + "/ws/" + service),
         sds.getList(versions + ".Endpoint.@Location"));
   }
 
@@ -141,7 +146,7 @@ class ServiceDirectoryResourceTest {
                 "ConnectorServices.ServiceInformation.Service.find { it.@Name == '"
                     + service
                     + "' }.Versions.Version[0].Endpoint.@Location");
-    assertEquals("http://localhost:8080/ws/" + service, location);
+    assertEquals(HTTP_BASE.get() + "/ws/" + service, location);
     given()
         .contentType("text/xml; charset=utf-8")
         .body(

@@ -94,6 +94,9 @@ public interface LianaConfig {
 
   KonExport konExport();
 
+  /** How clients reach the connector interface when no URL is configured (LIANA-217). */
+  Endpoints endpoints();
+
   /** CATS REST interface for tiger-cats-extensions (LIANA-67). */
   Cats cats();
 
@@ -316,8 +319,11 @@ public interface LianaConfig {
     /** HTTPS port of the connector interface; 0 picks a free port. */
     int port();
 
-    /** How clients reach the HTTPS port: base of {@code EndpointTLS} in {@code connector.sds}. */
-    String url();
+    /**
+     * How clients reach the HTTPS port: base of {@code EndpointTLS} in {@code connector.sds};
+     * without a value from the request (LIANA-217).
+     */
+    Optional<String> url();
 
     /**
      * Boot state of TLS_USE_ECC_FOR_CS (EHEX KMS): ECC variant of ID.AK.AUT instead of RSA ({@link
@@ -680,8 +686,24 @@ public interface LianaConfig {
     String konnektorHostname();
   }
 
+  interface Endpoints {
+    /** Evaluate {@code Forwarded} and {@code X-Forwarded-*}. */
+    @WithDefault("true")
+    boolean forwarded();
+
+    /** Port under which clients reach the HTTP port; the request does not name it over HTTPS. */
+    Optional<Integer> publicHttpPort();
+
+    /** Port under which clients reach the HTTPS port; the request does not name it over HTTP. */
+    Optional<Integer> publicTlsPort();
+  }
+
   interface KonExport {
-    String url();
+    /**
+     * How clients reach LIANA: {@code url} of the {@code .kon} export and base of {@code Endpoint}
+     * in {@code connector.sds}; without a value from the request (LIANA-217).
+     */
+    Optional<String> url();
 
     boolean rewriteServiceEndpoints();
 
