@@ -44,11 +44,20 @@ class ServiceDirectoryUrlTest {
 
   @Test
   @DisplayName(
-      "Endpoint folgt liana.kon-export.url, EndpointTLS liana.tls.url (z. B. im Docker-Netz)")
+      "Endpoint folgt liana.kon-export.url, EndpointTLS liana.tls.url (z. B. im Docker-Netz), "
+          + "LIANA-217 unabhängig von Host und Forwarded")
   void endpointsFollowKonExportUrl() {
     XmlPath sds =
         new XmlPath(
-            given().when().get("/connector.sds").then().statusCode(200).extract().asString());
+            given()
+                .header("Host", "example.test:28080")
+                .header("Forwarded", "host=public.test;proto=https")
+                .when()
+                .get("/connector.sds")
+                .then()
+                .statusCode(200)
+                .extract()
+                .asString());
     assertEquals(
         Services.endpoints("http://liana:8080"),
         sds

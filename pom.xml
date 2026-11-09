@@ -87,7 +87,7 @@
 
   <properties>
     <!-- LIANA-Version, einzige Stelle (Schema in docs/handbuch.md, Abschnitt „Version“) -->
-    <revision>0.7.22</revision>
+    <revision>0.7.30</revision>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -117,8 +117,8 @@
     <license-header-plugin.version>5.1.2</license-header-plugin.version>
     <dependency-check-plugin.version>13.0.0</dependency-check-plugin.version>
     <jacoco-plugin.version>0.8.14</jacoco-plugin.version>
-    <spotless-plugin.version>3.10.1</spotless-plugin.version>
-    <google-java-format.version>1.28.0</google-java-format.version>
+    <spotless-plugin.version>3.10.4</spotless-plugin.version>
+    <google-java-format.version>1.36.1</google-java-format.version>
     <sonar-plugin.version>5.7.0.6970</sonar-plugin.version>
     <!-- LIANA-200: SonarQube (Jenkins, mavenCheckWithSonarQube) reads the aggregated coverage from liana-coverage -->
     <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/liana-coverage/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
@@ -391,6 +391,7 @@
                 <include>examples/**/*.java</include>
                 <include>tools/**/*.sh</include>
                 <include>tools/**/*.py</include>
+                <include>tools/**/*.java</include>
               </includes>
               <excludes>
                 <!-- third-party library with its own license (LICENSE-*.txt next to it) -->

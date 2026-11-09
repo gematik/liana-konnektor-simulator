@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -46,8 +48,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * LIANA-180: {@code liana.pki.tsl-online} against a local HTTP server instead of the RU. The
- * baked-in TSL is the checked-in one (SequenceNumber 10713); online, the server delivers the same
- * file with SequenceNumber 10714, an older one (10712), one without CAs, and 500.
+ * baked-in TSL is the checked-in one; online, the server delivers the same file with the next
+ * SequenceNumber, an older one, one without CAs, and 500.
  */
 class OnlineTslTest {
 
@@ -63,16 +65,21 @@ class OnlineTslTest {
     }
   }
 
+  private int bakedSequence;
+
   @BeforeEach
   void start() throws IOException {
     String tsl = Files.readString(BAKED, StandardCharsets.UTF_8);
+    Matcher sequence = Pattern.compile("<TSLSequenceNumber>(\\d+)<").matcher(tsl);
+    assertTrue(sequence.find());
+    bakedSequence = Integer.parseInt(sequence.group(1));
     Map<String, byte[]> files =
         Map.of(
             "/newer.xml",
-                tsl.replace("<TSLSequenceNumber>10713<", "<TSLSequenceNumber>10714<")
+                tsl.replace(sequence.group(), "<TSLSequenceNumber>" + (bakedSequence + 1) + "<")
                     .getBytes(StandardCharsets.UTF_8),
             "/older.xml",
-                tsl.replace("<TSLSequenceNumber>10713<", "<TSLSequenceNumber>10712<")
+                tsl.replace(sequence.group(), "<TSLSequenceNumber>" + (bakedSequence - 1) + "<")
                     .getBytes(StandardCharsets.UTF_8),
             "/empty.xml", "<TrustServiceStatusList/>".getBytes(StandardCharsets.UTF_8));
     server = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
@@ -121,7 +128,7 @@ class OnlineTslTest {
         OnlineTsl.start(trustSpace, OnlineTsl.Mode.BACKGROUND, url("/newer.xml"), TIMEOUT)
             .get(10, TimeUnit.SECONDS)
             .orElseThrow();
-    assertEquals("10714", online.sequenceNumber());
+    assertEquals(String.valueOf(bakedSequence + 1), online.sequenceNumber());
     assertEquals(online, trustSpace.tsl());
     assertEquals(url("/newer.xml").toString(), trustSpace.tsl().source());
   }
@@ -138,7 +145,7 @@ class OnlineTslTest {
               .get(10, TimeUnit.SECONDS),
           path);
       assertEquals(BAKED.toString(), trustSpace.tsl().source(), path);
-      assertEquals("10713", trustSpace.tsl().sequenceNumber(), path);
+      assertEquals(String.valueOf(bakedSequence), trustSpace.tsl().sequenceNumber(), path);
     }
   }
 
@@ -148,7 +155,7 @@ class OnlineTslTest {
   void enforce() {
     TrustSpace trustSpace = baked();
     assertEquals(
-        "10714",
+        String.valueOf(bakedSequence + 1),
         OnlineTsl.start(trustSpace, OnlineTsl.Mode.ENFORCE, url("/newer.xml"), TIMEOUT)
             .join()
             .orElseThrow()

@@ -20,13 +20,17 @@
 package de.gematik.liana.adapter.sds;
 
 import de.gematik.liana.kern.management.ClientSystemBinding;
+import de.gematik.liana.kern.management.PublicEndpoints;
 import de.gematik.liana.kern.vendor.VendorProfile;
 import io.quarkus.qute.Location;
 import io.quarkus.qute.Template;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.UriInfo;
 import java.time.Clock;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -46,10 +50,9 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
  * of the WSDLs in {@code support/schemas/conn/}, ascending, but not beyond the revision whose
  * behaviour LIANA reproduces (CertificateService 6.0.3, SignatureService from 7.5.6 on not). {@code
  * TargetNamespace} is the namespace of the schema, as the clients use it in the SOAPAction (the
- * secunet Konnektor puts the WSDL namespace there, {@code …/WSDL/v8.2}). The endpoints are derived
- * from {@code liana.kon-export.url} ({@code Endpoint}) and {@code liana.tls.url} ({@code
- * EndpointTLS}), the way clients reach LIANA; {@code ClientAutMandatory} follows {@code
- * liana.tls.client-auth} (LIANA-58).
+ * secunet Konnektor puts the WSDL namespace there, {@code …/WSDL/v8.2}). The endpoints come from
+ * {@link PublicEndpoints}, the way clients reach LIANA: configured or from the request (LIANA-217);
+ * {@code ClientAutMandatory} follows {@code liana.tls.client-auth} (LIANA-58).
  *
  * <p>LIANA implements SignatureService (7.4 and 7.5) and EncryptionService only up to the access
  * check (GetJobNumber complete, LIANA-60); the Konnektor PoPP Postman collections read their
@@ -73,18 +76,15 @@ public class ServiceDirectoryResource {
   static final String PRODUCT_TYPE_VERSION = "6.0.4";
 
   private final Template template;
-  private final String baseUrl;
-  private final String tlsBaseUrl;
+  private final PublicEndpoints endpoints;
   private final ClientSystemBinding binding;
   private final String version;
   private final Clock clock;
   private final VendorProfile vendor;
 
-  @SuppressWarnings("java:S5852") // trailing slashes of a configured URL
   public ServiceDirectoryResource(
       @Location("connector.sds.xml") Template template,
-      @ConfigProperty(name = "liana.kon-export.url") String konExportUrl,
-      @ConfigProperty(name = "liana.tls.url") String tlsUrl,
+      PublicEndpoints endpoints,
       ClientSystemBinding binding,
       @ConfigProperty(name = "quarkus.application.version") String version,
       Clock clock,
@@ -92,19 +92,35 @@ public class ServiceDirectoryResource {
     this.template = template;
     this.vendor = vendor;
     this.clock = clock;
-    this.baseUrl = konExportUrl.replaceAll("/+$", "");
-    this.tlsBaseUrl = tlsUrl.replaceAll("/+$", "");
+    this.endpoints = endpoints;
     this.binding = binding;
     this.version = version;
   }
 
   @GET
   @Produces(MediaType.APPLICATION_XML)
-  public String get() {
-    return template.data("sds", directory()).render();
+  public String get(@Context UriInfo uri, @Context HttpHeaders headers) {
+    return render(endpoints.forRequest(uri.getRequestUri().getScheme(), headers::getHeaderString));
   }
 
-  ServiceDirectory directory() {
+  /** The directory without a request, for the readiness check. */
+  public String render() {
+    return render(endpoints.forOtherPort(header -> null));
+  }
+
+  private String render(PublicEndpoints.Bases bases) {
+    return template.data("sds", directory(bases)).render();
+  }
+
+  /** Whether {@code connector.sds} offers this version of the service (LIANA-218). */
+  boolean offers(String service, String version) {
+    return directory(new PublicEndpoints.Bases("", "")).services().stream()
+        .filter(s -> s.name().equals(service))
+        .flatMap(s -> s.versions().stream())
+        .anyMatch(v -> v.version().equals(version));
+  }
+
+  ServiceDirectory directory(PublicEndpoints.Bases bases) {
     // ISO_INSTANT always writes seconds; OffsetDateTime.toString() omits :00, which is not an
     // xsd:dateTime
     ClientSystemBinding.State state = binding.state();
@@ -119,19 +135,23 @@ public class ServiceDirectoryResource {
         state.authentication() != ClientSystemBinding.Authentication.NONE,
         List.of(
             service(
+                bases,
                 "EventService",
                 "Ereignisdienst",
                 versions("http://ws.gematik.de/conn/EventService/v7.2", "7.2.0")),
             service(
+                bases,
                 "CardTerminalService",
                 "Kartenterminaldienst",
                 versions("http://ws.gematik.de/conn/CardTerminalService/v1.1", "1.1.0")),
             service(
+                bases,
                 "CardService",
                 "Kartendienst",
                 versions("http://ws.gematik.de/conn/CardService/v8.1", "8.1.0", "8.1.1", "8.1.2"),
                 versions("http://ws.gematik.de/conn/CardService/v8.2", "8.2.0", "8.2.1")),
             service(
+                bases,
                 "CertificateService",
                 "Zertifikatsdienst",
                 versions(
@@ -140,10 +160,12 @@ public class ServiceDirectoryResource {
                     "6.0.1",
                     "6.0.2")),
             service(
+                bases,
                 "AuthSignatureService",
                 "Authentifizierungsdienst",
                 versions("http://ws.gematik.de/conn/SignatureService/v7.4", "7.4.0", "7.4.1")),
             service(
+                bases,
                 "SignatureService",
                 "Signaturdienst",
                 versions(
@@ -161,28 +183,34 @@ public class ServiceDirectoryResource {
                     "7.5.4",
                     "7.5.5")),
             service(
+                bases,
                 "EncryptionService",
                 "Verschlüsselungsdienst",
                 versions("http://ws.gematik.de/conn/EncryptionService/v6.1", "6.1.0", "6.1.1")),
             service(
+                bases,
                 "VSDService",
                 "VSD von eGK lesen",
                 versions("http://ws.gematik.de/conn/vsds/VSDService/v5.2", "5.2.0")),
             service(
+                bases,
                 "KVKService",
                 "Versichertendaten von KVK lesen",
                 versions("http://ws.gematik.de/conn/vsds/KvkService/v4.0", "4.0.0"))));
   }
 
   @SafeVarargs
-  private ServiceDirectory.Service service(
-      String name, String description, List<ServiceDirectory.Version>... versions) {
+  private static ServiceDirectory.Service service(
+      PublicEndpoints.Bases bases,
+      String name,
+      String description,
+      List<ServiceDirectory.Version>... versions) {
     return new ServiceDirectory.Service(
         name,
         description,
         Arrays.stream(versions).flatMap(List::stream).toList(),
-        baseUrl + "/ws/" + name,
-        tlsBaseUrl + "/ws/" + name);
+        bases.http() + "/ws/" + name,
+        bases.tls() + "/ws/" + name);
   }
 
   private static List<ServiceDirectory.Version> versions(String namespace, String... versions) {

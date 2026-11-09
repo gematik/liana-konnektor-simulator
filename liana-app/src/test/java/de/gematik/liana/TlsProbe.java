@@ -116,7 +116,8 @@ public final class TlsProbe {
 
   public Result get(int port, String path) throws IOException, GeneralSecurityException {
     return exchange(
-        port, "GET " + path + " HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n");
+        port,
+        "GET " + path + " HTTP/1.1\r\nHost: localhost:" + port + "\r\nConnection: close\r\n\r\n");
   }
 
   /** POST with SOAP 1.1 ({@code text/xml}, {@code SOAPAction}). */

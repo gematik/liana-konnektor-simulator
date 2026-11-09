@@ -16,6 +16,8 @@ quarkus:
   ssl:
     native: true               # the KMS speaks HTTPS (LIANA-55); otherwise the native image has no TLS support
   native:
+    # Runs on any x86-64 CPU and under emulation (QEMU without AVX); GraalVM defaults to x86-64-v3 (LIANA-216)
+    additional-build-args: -march=compatibility
     resources:
       # Control Center (LIANA-148), OpenAPI (LIANA-149) and schemas for the request validation (LIANA-48) from the classpath
       includes: gui/**,admin/openapi.yaml,de/gematik/liana/contract/schemas/**
@@ -92,7 +94,7 @@ liana:
   # TLS 1.2 per gemSpec_Krypt, server identity ID.AK.AUT from infrastructure.konnektor.gsmc-k; no TSL or OCSP check.
   tls:
     port: 8443
-    url: https://localhost:8443          # EndpointTLS in connector.sds, as clients reach LIANA
+    # url: https://liana:8443             # EndpointTLS in connector.sds, as clients reach LIANA; without a value from the request (liana.endpoints)
     ecc-for-client-systems: true         # TLS_USE_ECC_FOR_CS (EHEX KMS)
     mandatory: false                     # ANCL_TLS_MANDATORY: true refuses calls without TLS (spec default Enabled)
     dvd-open: true                       # ANCL_DVD_OPEN: connector.sds over HTTP even with ANCL_TLS_MANDATORY
@@ -201,8 +203,14 @@ liana:
       #   shared-secret: 00112233445566778899AABBCCDDEEFF   # existing pairing (CT.SHARED_SECRET), otherwise Admin API
 
   # .kon export (support/kon/kon-format.md, v1.0.0) – GET /admin/clients/{clientSystemId}/config.kon
+  # Endpoints in connector.sds and the .kon export without a configured URL (LIANA-217): Forwarded or X-Forwarded-*,
+  # otherwise the Host header. The request does not name the port of the other scheme.
+  endpoints:
+    forwarded: true                      # evaluate Forwarded and X-Forwarded-*
+    # public-http-port: 28080            # as clients reach the HTTP port, default quarkus.http.port
+    # public-tls-port: 28443             # as clients reach the HTTPS port, default liana.tls.port
   kon-export:
-    url: http://localhost:8080          # as clients reach LIANA (in the Docker network e.g. http://liana:8080)
+    # url: http://liana:8080             # as clients reach LIANA; without a value from the request (liana.endpoints)
     rewrite-service-endpoints: true
     credentials:                         # phase 0/1: the format requires credentials, LIANA does not evaluate basic yet
       type: basic

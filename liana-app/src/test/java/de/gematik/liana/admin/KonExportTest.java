@@ -97,6 +97,22 @@ class KonExportTest {
   }
 
   @Test
+  @DisplayName(
+      "LIANA-217 AC 5 url ohne Konfiguration: Host aus dem Request an den Management-Port, Port der Konnektor-Schnittstelle")
+  void urlFromRequest() throws Exception {
+    String raw =
+        given()
+            .port(server.port())
+            .header("Host", "example.test:29090")
+            .get("/admin/clients/CS1/config.kon")
+            .then()
+            .statusCode(200)
+            .extract()
+            .asString();
+    assertEquals("http://example.test:8080", new ObjectMapper().readTree(raw).get("url").asText());
+  }
+
+  @Test
   @DisplayName("kon-format §7: der Export besteht alle Validierungsregeln")
   void exportGueltig() throws Exception {
     assertEquals(List.of(), KonValidator.errors(KonFile.load(kon("CS1"), Map.of())));

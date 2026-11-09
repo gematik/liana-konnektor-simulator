@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import de.gematik.liana.adapter.sds.ServiceDirectoryResource;
 import de.gematik.liana.kern.management.ClientSystemBinding;
+import de.gematik.liana.kern.management.PublicEndpoints;
 import de.gematik.liana.kern.vendor.Vendor;
 import de.gematik.liana.kern.vendor.VendorProfile;
 import io.quarkus.qute.Location;
@@ -33,6 +34,7 @@ import jakarta.inject.Inject;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -56,15 +58,14 @@ class ServiceDirectoryInformationDateTest {
     String sds =
         new ServiceDirectoryResource(
                 template,
-                "http://localhost:8080",
-                "https://localhost:8443",
+                new PublicEndpoints(Optional.empty(), Optional.empty(), true, 8080, 8443),
                 new ClientSystemBinding(
                     new ClientSystemBinding.State(
                         false, ClientSystemBinding.Authentication.NONE, true, true, false)),
                 "0.0.0",
                 fullMinute,
                 new VendorProfile(Vendor.NEUTRAL))
-            .get();
+            .render();
     assertEquals(
         "2026-10-09T12:06:00Z",
         new XmlPath(sds).getString("ConnectorServices.ProductInformation.InformationDate"));

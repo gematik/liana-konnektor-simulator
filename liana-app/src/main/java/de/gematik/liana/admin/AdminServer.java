@@ -230,7 +230,10 @@ public class AdminServer {
               events.stateChanged("vendor");
               respond(ctx, 200, state);
             });
-    get(router, "/admin/clients/:id/config.kon", ctx -> api.konConfig(ctx.pathParam("id")));
+    get(
+        router,
+        "/admin/clients/:id/config.kon",
+        ctx -> api.konConfig(ctx.pathParam("id"), ctx.request()::getHeader));
     get(router, "/admin/cards", ctx -> api.cards());
     get(router, "/admin/images", ctx -> api.images());
     get(router, "/admin/subscriptions", ctx -> api.subscriptions());

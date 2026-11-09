@@ -2,6 +2,57 @@
 
 # Release Notes liana-konnektor-simulator
 
+## Release 0.7.30 (2026-11-09)
+
+### other
+
+- Trace tests use Tiger 4.5.0, which parses SICCT traffic down to ISO 7816-4 APDUs; the SICCT push test checks command names, Lc/Le, status words and the pairing of each response with its command
+
+## Release 0.7.29 (2026-11-05)
+
+### changed
+
+- BNetzA-VL replaced by gematik's public Pseudo-BNetzA-VL, sequence 60 (NextUpdate 2029-03-17); it adds the test QCAs of the bundled HBA images (GEM.HBA-qCA28 and qCA51) and drops 12 certificates; no exception for expiry remains
+
+## Release 0.7.28 (2026-11-05)
+
+### changed
+
+- Checked-in RU TSL updated to sequence 10717 (NextUpdate 2026-11-27); tools/pki/CertExpiry.java fails 7 days before the NextUpdate of a TSL instead of 45, as the RU issues TSLs for about 30 days
+
+## Release 0.7.27 (2026-11-05)
+
+### other
+
+- New tools/pki/CertExpiry.java reports the expiry of certificates in support/pki and the card images and NextUpdate of the TSLs, and fails below 45 days; dates that are not relevant stand with a reason in support/pki/expiry-exceptions.txt (the BNetzA-VL test copy, which has no newer source)
+
+## Release 0.7.26 (2026-11-05)
+
+### changed
+
+- Endpoints in connector.sds and the url of the .kon export no longer default to localhost: without liana.kon-export.url and liana.tls.url they come from the request, first Forwarded or X-Forwarded-* (switch liana.endpoints.forwarded, on by default), then the Host header, so port mappings such as -p 28080:8080 work without configuration
+- New settings liana.endpoints.public-http-port and liana.endpoints.public-tls-port for the port of the other scheme, which a request does not name; configured URLs keep precedence
+
+## Release 0.7.25 (2026-11-05)
+
+### changed
+
+- Serving /ws/<Service>/<Version> is a known client deviation (HARDCODED_VERSIONED_ENDPOINT, gemILF_PS TIP1-A_4967): each call is logged in the system log, with liana.strict the path answers 404; the path version selects nothing, the SOAP version is the namespace in the body
+
+## Release 0.7.24 (2026-11-05)
+
+### added
+
+- SOAP services also answer under /ws/<Service>/<Version> for every version connector.sds offers (e.g. /ws/EventService/7.2.0, /ws/SignatureService/7.5.5), for clients with hard-wired versioned paths; other versions answer 404, connector.sds itself is unchanged
+
+## Release 0.7.23 (2026-10-29)
+
+### fixed
+
+- Build: google-java-format 1.36.1 and Spotless 3.10.4, so the format check also runs on JDK 25 (formatting unchanged)
+- Build guide: the Mandrel container command uses the jdk-25 builder image (jdk-21 fails), and building the amd64 binary on Apple Silicon is documented
+- The Docker image no longer requires AVX/AVX2: the native binary is built with -march=compatibility and starts on any x86-64-v2 CPU and under emulation (QEMU, e.g. Docker on Apple Silicon without Rosetta), which previously aborted with "The current machine does not support all of the following CPU features"
+
 ## Release 0.7.22 (2026-10-28)
 
 ### other

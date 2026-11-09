@@ -17,7 +17,7 @@
   <properties>
     <!-- not deployed to Nexus, only the client artifacts are (LIANA-142) -->
     <maven.deploy.skip>true</maven.deploy.skip>
-    <tiger.version>4.4.5</tiger.version>
+    <tiger.version>4.5.0</tiger.version>
     <!-- matching the slf4j-api that tiger-rbel gets through the Quarkus BOM -->
     <slf4j.version>2.0.17</slf4j.version>
     <!-- trace tests always run, also without -Dnative -->

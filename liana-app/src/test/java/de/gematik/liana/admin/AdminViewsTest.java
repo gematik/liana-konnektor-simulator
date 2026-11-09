@@ -333,6 +333,7 @@ class AdminViewsTest {
         .statusCode(200)
         .body("strict", equalTo(false))
         .body("deviations.id", hasItem("KARTOS_MODIFY_VERIFICATION_DATA"))
+        .body("deviations.id", hasItem("HARDCODED_VERSIONED_ENDPOINT"))
         .body(
             "deviations.find { it.id == 'KARTOS_MODIFY_VERIFICATION_DATA' }.peer",
             equalTo("kartos terminal 0.8.0"))
