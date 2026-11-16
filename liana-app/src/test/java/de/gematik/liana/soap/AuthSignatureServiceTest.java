@@ -55,7 +55,7 @@ class AuthSignatureServiceTest {
   private static final String NS = "http://ws.gematik.de/conn/SignatureService/v7.4";
 
   /** The hash that the popp-client has signed in the TU trace (request 12). */
-  private static final String HASH = "8Tqb6qisC00ZtYRHyFIpVZwb5FnIBVqD4aY4EjVHF/4=";
+  static final String HASH = "8Tqb6qisC00ZtYRHyFIpVZwb5FnIBVqD4aY4EjVHF/4=";
 
   private static final String CONTEXT =
       """
@@ -66,8 +66,8 @@ class AuthSignatureServiceTest {
 
   @Inject FakeTerminals terminals;
 
-  private static ValidatableResponse externalAuthenticate(
-      String cardHandle, String base64, String mimeType) throws Exception {
+  static ValidatableResponse externalAuthenticate(String cardHandle, String base64, String mimeType)
+      throws Exception {
     return externalAuthenticate(cardHandle, "", base64, mimeType);
   }
 
@@ -101,7 +101,7 @@ class AuthSignatureServiceTest {
         .then();
   }
 
-  private static void verifyPin(String cardHandle) {
+  static void verifyPin(String cardHandle) {
     verifyPin(cardHandle, "PIN.SMC");
   }
 
@@ -123,7 +123,7 @@ class AuthSignatureServiceTest {
   }
 
   /** C.AUT of the card (SMC-B, HBA) via ReadCardCertificate. */
-  private static X509Certificate cAut(String cardHandle) throws Exception {
+  static X509Certificate cAut(String cardHandle) throws Exception {
     String ns = "http://ws.gematik.de/conn/CertificateService/v6.0";
     String xml =
         given()

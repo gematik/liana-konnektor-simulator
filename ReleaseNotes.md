@@ -2,6 +2,80 @@
 
 # Release Notes liana-konnektor-simulator
 
+## Release 0.7.38 (2026-11-16)
+
+### added
+
+- Control Center page Verkehr: time range of the message list as presets (5 min, 15 min by default, 1 h, 24 h, sliding along in live mode), since the start of LIANA, or an own range with from, to and a fallback for an empty from (15 min, since start, the latest 500)
+- `GET /admin/info` names the start of LIANA (`started`)
+
+## Release 0.7.37 (2026-11-16)
+
+### fixed
+
+- Control Center page Verkehr: the channel switches and the overview no longer wait for a slow message request to the Tiger proxy (several seconds with thousands of messages); a switch flips at once
+
+## Release 0.7.36 (2026-11-16)
+
+### added
+
+- Control Center page Verkehr: every channel of the traffic push can be switched off and on at runtime (Konnektor interface, management port, CETP, UFS, online TSL, each card terminal …); like every change through the Admin API until restart or reset, `PUT /admin/trace/channels/{id}`
+- The message filter starts with the messages from and to LIANA, by its name in the trace
+
+### changed
+
+- New layout of the page Verkehr: push status with counters as tiles, channels as expandable rows with a switch, filter, time window and live update in the head of the message list, a state of its own when the Tiger proxy is unreachable
+- An opened message shows all metadata Tiger provides and links to the message in the Tiger WebUI
+
+### removed
+
+- The page Verkehr no longer embeds the message as rendered by Tiger; `GET /admin/trace/messages/{uuid}`, `…/html` and `/admin/trace/assets/*` are gone
+
+## Release 0.7.35 (2026-11-16)
+
+### changed
+
+- Traffic push: LIANA appears as `name/IP:Port` instead of `liana:<port>`, with the IP of the real socket; Tiger splits it into hostname and IP, the name keeps the trace independent of the run and separates several connectors in one proxy
+- The name is `liana.trace.name`, otherwise the host of `liana.tls.url` or `liana.kon-export.url`, otherwise `konnektor`; an IP or `localhost` as `liana.trace.name` stops the startup
+- Fake card terminals appear as `<name>-KT-01:<slot>`, eHealth card terminals as `<host or CT ID>/IP:port`; CETP sinks and UFS with the IP they were reached at
+- The Control Center page Verkehr shows the name and uses it in the table of channels
+
+## Release 0.7.34 (2026-11-16)
+
+### added
+
+- Control Center page Verkehr: for each channel, which parts of its messages LIANA reports to the Tiger proxy at `liana.trace.push-url`, the way on the wire and the sender and receiver in the Tiger log, plus counters of the traffic push (delivered, failed, dropped, last error)
+- The page lists the messages in that Tiger proxy with time window, Tiger filter and live update, and opens each one as Tiger renders it, read through the Admin API under `/admin/trace/*`, so the browser does not need to reach the proxy
+- The Systemprotokoll and the card sessions link to the traffic of their time window; `GET /admin/sessions` names the start of each card session
+- `liana.trace.webui-url` sets the link to the Tiger WebUI when the browser reaches the proxy under another address than LIANA
+
+## Release 0.7.33 (2026-11-16)
+
+### other
+
+- Publication: experimental native linux/arm64 build under emulation, published internally only; the image on DockerHub stays linux/amd64
+- Docker image: the TSL is fetched on the build host for every target platform
+
+## Release 0.7.32 (2026-11-13)
+
+### added
+
+- A PKCS#12 with an SMC-B AUT identity (brainpoolP256r1, such as the gematik test SMC-B) in a folder of `liana.card-images` becomes an SMC-B in the fake terminal; a slot, the Admin API and the robot select it by file name; certificate and key come from the PKCS#12, the rest of the card from a template without AUT identity
+- `liana.card-p12.passwords` lists the passwords LIANA tries for such a PKCS#12, then the empty one; default `00`, `changeit`, `gematik`, `12345678`, `123456`, `liana`
+- The ICCSN of such an SMC-B follows from the Telematik-ID of the test cards (`1-SMC-B-Testkarte--<15 digits>`), otherwise it is a stable synthetic value starting with `8027699999`
+- An unusable PKCS#12 (no password fits, no key pair, other curve, not an SMC-B AUT certificate, no Telematik-ID) stops the startup with slot, file and reason once a slot selects it; the Admin API answers 400
+
+## Release 0.7.31 (2026-11-12)
+
+### added
+
+- With `liana.trace.push-url`, LIANA pushes every message it sends or receives to the Tiger proxy, as plaintext after TLS: the connector interface (SOAP, connector.sds), KMS, CATS and robot on the management port, CETP, the UFS of the online check, the online TSL, and the SICCT traffic of eHealth terminals as on the wire; the Admin API and the Control Center are left out
+- Every pushed message carries its own UUID, a response the UUID of its request, and is marked as supplementary, so a Tiger proxy that also sees the traffic on the wire keeps one copy and pairs request and response
+
+### changed
+
+- Card APDUs of the fake terminal are pushed with UUID and pairing; eHealth terminals no longer push APDUs in a made-up envelope but their SICCT envelopes
+
 ## Release 0.7.30 (2026-11-09)
 
 ### other

@@ -38,7 +38,9 @@ import de.gematik.liana.kern.terminal.CardTerminal;
 import de.gematik.liana.kern.terminal.NoCardException;
 import de.gematik.liana.kern.terminal.TerminalRegistry;
 import de.gematik.liana.kern.terminal.TimeLimitedTerminal;
+import de.gematik.liana.kern.trace.Traffic;
 import de.gematik.liana.sm.TrustedChannelTerminal;
+import de.gematik.liana.trace.TraceChannels;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -50,6 +52,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class TerminalWiringTest {
+
+  /** Reports nowhere, but counts as active, like a configured push. */
+  private static final Traffic REPORTS = (message, sender, receiver, time, responseTo) -> "uuid";
 
   private static final ManagementSettings SETTINGS =
       new ManagementSettings(
@@ -144,7 +149,8 @@ class TerminalWiringTest {
             sicctTerminals(List.of()),
             TestConfig.load(Map.of()),
             () -> null,
-            SETTINGS);
+            SETTINGS,
+            new TraceChannels(Traffic.OFF));
     assertTrue(ohne.terminals().stream().allMatch(TimeLimitedTerminal.class::isInstance));
 
     var mit =
@@ -153,9 +159,9 @@ class TerminalWiringTest {
             sicctTerminals(List.of()),
             TestConfig.load(Map.of("liana.trace.push-url", "http://localhost:1")),
             () -> null,
-            SETTINGS);
+            SETTINGS,
+            new TraceChannels(REPORTS));
     assertTrue(mit.terminals().stream().allMatch(TrafficPushingTerminal.class::isInstance));
-    wiring.close(mit);
   }
 
   @Test
@@ -177,9 +183,13 @@ class TerminalWiringTest {
                 "80276883110000148887"));
     var registry =
         wiring.terminalRegistry(
-            fakeTerminals(Map.of()), sicctTerminals(List.of()), config, () -> null, SETTINGS);
+            fakeTerminals(Map.of()),
+            sicctTerminals(List.of()),
+            config,
+            () -> null,
+            SETTINGS,
+            new TraceChannels(REPORTS));
     assertTrue(registry.terminals().stream().allMatch(TrustedChannelTerminal.class::isInstance));
-    wiring.close(registry);
   }
 
   /** SICCT KTs without network: service discovery only starts with {@link SicctTerminals#start}. */
@@ -217,7 +227,8 @@ class TerminalWiringTest {
                 sicctTerminals(List.of("KT-S1")),
                 config,
                 () -> null,
-                SETTINGS);
+                SETTINGS,
+                new TraceChannels(Traffic.OFF));
     assertEquals(
         List.of("KT-01", "KT-02", "KT-S1"),
         registry.terminals().stream().map(CardTerminal::id).toList());

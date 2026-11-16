@@ -2,6 +2,10 @@
 
 Erster Ordner von `liana.card-images` (LIANA-98). LIANA indexiert die Images beim Start nach Dateiname und ICCSN (EF.GDO); ein Slot-Eintrag in `liana.infrastructure.terminals` wählt per Dateiname (`egk-valid`, erster Ordner gewinnt), ICCSN (eindeutig) oder absolutem Pfad. Fehlt ein Image oder ist eine ICCSN mehrdeutig, bricht der Start ab.
 
+## SMC-B aus einer PKCS#12 (LIANA-220)
+
+Neben `*.xml` indexiert LIANA in den Ordnern von `liana.card-images` auch `*.p12` und erzeugt daraus eine SMC-B (Handbuch, „SMC-B aus einer PKCS#12“). Vorlage ist `liana-app/src/main/resources/cards/smcb-p12-template.xml`: `smcb-valid` ohne AUT-Identität, mit Platzhaltern für C.HCI.AUT.E256, PrK.HCI.AUT.E256 (Skalar und öffentlicher Punkt), EF.GDO und `iccsn8`. Die Vorlage liegt auf dem Klassenpfad und nicht hier, weil sie ohne die Platzhalter keine Karte ist. C.HCI.ENC, C.HCI.OSIG, die RSA-Objekte und die CV-Zertifikate der Vorlage tragen weiter die Identität von `smcb-valid` (ICCSN …168650).
+
 ## Format
 
 gematik-Objektsystem-XML (`<card version="3">…<objectSystem>`), Endung **`.xml`**. Dasselbe Format nutzen Testhub, CATS und die Kartenproduktion. Ausgeführt werden die Images von kartos (`kartos pipe <image>`, decision-7). Den ATR liest LIANA aus dem Attribut `coldAnswerToReset`.

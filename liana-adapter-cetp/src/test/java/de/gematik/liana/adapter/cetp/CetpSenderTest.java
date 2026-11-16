@@ -91,6 +91,40 @@ class CetpSenderTest {
 
   @Test
   @DisplayName(
+      "LIANA-195: jede zugestellte CETP-Nachricht geht so an Traffic, wie sie auf der Leitung steht, "
+          + "von liana an die Ereignissenke")
+  void verkehr() throws Exception {
+    record Report(byte[] message, String sender, String receiver) {}
+    BlockingQueue<Report> reports = new LinkedBlockingQueue<>();
+    CetpSender traced =
+        new CetpSender(
+            (host, port) -> new Socket(host, port),
+            (message, from, to, time, responseTo) -> {
+              reports.add(new Report(message, from, to));
+              return "uuid";
+            });
+    try (ServerSocket server = new ServerSocket(0, 10, InetAddress.getLoopbackAddress())) {
+      server.setSoTimeout(5000);
+      traced.send(
+          event("CARD/INSERTED"), subscription("sub-1", server.getLocalPort(), null), outcome("1"));
+      try (Socket socket = server.accept()) {
+        byte[] wire = socket.getInputStream().readNBytes(8);
+        int length = java.nio.ByteBuffer.wrap(wire, 4, 4).getInt();
+        byte[] xml = socket.getInputStream().readNBytes(length);
+        Report report = reports.poll(5, TimeUnit.SECONDS);
+        assertArrayEquals(
+            java.nio.ByteBuffer.allocate(8 + length).put(wire).put(xml).array(), report.message());
+        // LIANA-195.04: name/IP:Port of LIANA's end of the connection
+        assertEquals("konnektor/127.0.0.1:" + socket.getPort(), report.sender());
+        assertEquals("127.0.0.1:" + server.getLocalPort(), report.receiver());
+      }
+    } finally {
+      traced.close();
+    }
+  }
+
+  @Test
+  @DisplayName(
       "TIP1-A_4594 / TIP1-A_4596: Verbindung zur Ereignissenke aus EventTo, CETP + Länge Big-Endian + "
           + "Event-XML mit der SubscriptionID, Reihenfolge je Senke bleibt, die Verbindung trägt beide Ereignisse")
   void zustellung() throws Exception {

@@ -22,10 +22,13 @@ package de.gematik.liana.robot;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gematik.liana.config.LianaConfig;
+import de.gematik.liana.trace.HttpTrace;
+import de.gematik.liana.trace.TraceChannels;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -52,12 +55,19 @@ public class RobotServer {
   private static final Logger LOG = Logger.getLogger(RobotServer.class);
 
   private final Vertx vertx;
+  private final TraceChannels channels;
   private final ObjectMapper json;
   private final RobotTerminals robot;
   private final Optional<Integer> port;
   private HttpServer server;
 
-  RobotServer(Vertx vertx, ObjectMapper json, RobotTerminals robot, LianaConfig config) {
+  RobotServer(
+      Vertx vertx,
+      ObjectMapper json,
+      RobotTerminals robot,
+      LianaConfig config,
+      TraceChannels channels) {
+    this.channels = channels;
     this.vertx = vertx;
     this.json = json;
     this.robot = robot;
@@ -71,7 +81,7 @@ public class RobotServer {
     robot.awaitPinInput();
     server =
         vertx
-            .createHttpServer()
+            .createHttpServer(new HttpServerOptions().setHttp2ClearTextEnabled(false))
             .requestHandler(router())
             .listen(port.get())
             .toCompletionStage()
@@ -96,6 +106,7 @@ public class RobotServer {
 
   private Router router() {
     Router router = Router.router(vertx);
+    HttpTrace.install(router, channels.traffic(TraceChannels.ROBOT), path -> true);
     router.route().handler(BodyHandler.create());
     router
         .post("/api/robot/robotCommand")

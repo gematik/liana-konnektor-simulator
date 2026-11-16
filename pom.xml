@@ -87,7 +87,7 @@
 
   <properties>
     <!-- LIANA-Version, einzige Stelle (Schema in docs/handbuch.md, Abschnitt „Version“) -->
-    <revision>0.7.30</revision>
+    <revision>0.7.38</revision>
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -396,6 +396,8 @@
               <excludes>
                 <!-- third-party library with its own license (LICENSE-*.txt next to it) -->
                 <exclude>**/gui/vendor/**</exclude>
+                <!-- recorded responses of the Tiger WebUI, unchanged (SOURCE.md next to them, LIANA-195.03) -->
+                <exclude>**/tiger-webui-*/**</exclude>
                 <exclude>**/target/**</exclude>
                 <exclude>.claude/**</exclude>
               </excludes>

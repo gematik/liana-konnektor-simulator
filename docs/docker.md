@@ -102,7 +102,7 @@ Frequently used settings:
 | `liana.infrastructure.terminals` | `KT-01`, `KT-02` | card terminals and the cards in their slots ([Card images](#card-images)) |
 | `liana.infomodel` | `M1`, `CS1`, `WP1` | mandants, client systems and workplaces |
 | `liana.soap.request-validation` (`LIANA_SOAP_REQUEST_VALIDATION`) | `log` | checks requests against XSD and soapAction: `off`, `log` (warning in the log), `reject` (SOAP fault) |
-| `liana.trace.push-url` (`LIANA_TRACE_PUSH_URL`) | none | Tiger proxy that receives every card APDU, e.g. `http://host.docker.internal:6900` |
+| `liana.trace.push-url` (`LIANA_TRACE_PUSH_URL`) | none | Tiger proxy that receives every message LIANA sends or receives (SOAP, KMS, CETP, UFS, card APDUs), e.g. `http://host.docker.internal:6900` |
 | `liana.pki.tsl-online.mode` (`LIANA_PKI_TSL_ONLINE_MODE`) | `off` | fetch the RU TSL at start: `background` (fall back to the bundled one), `enforce` (fail without one) |
 | `liana.admin.port` (`LIANA_ADMIN_PORT`) | `9090` | management port inside the container |
 

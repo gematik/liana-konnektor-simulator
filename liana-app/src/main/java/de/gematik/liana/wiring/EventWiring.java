@@ -26,6 +26,7 @@ import de.gematik.liana.crypto.TlsIdentity;
 import de.gematik.liana.kern.access.Infomodel;
 import de.gematik.liana.kern.event.Subscriptions;
 import de.gematik.liana.kern.management.ClientSystemBinding;
+import de.gematik.liana.trace.TraceChannels;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Disposes;
 import jakarta.enterprise.inject.Produces;
@@ -53,7 +54,8 @@ public class EventWiring {
 
   @Produces
   @Singleton
-  CetpSender cetpSender(LianaConfig config, TlsIdentity identity, ClientSystemBinding binding)
+  CetpSender cetpSender(
+      LianaConfig config, TlsIdentity identity, ClientSystemBinding binding, TraceChannels channels)
       throws GeneralSecurityException {
     Duration timeout = config.events().connectTimeout();
     CetpTls tls = new CetpTls(identity, timeout);
@@ -61,7 +63,8 @@ public class EventWiring {
         (host, port) ->
             binding.state().tlsMandatory() ? tls.connect(host, port) : plain(host, port, timeout);
     return new CetpSender(
-        config.events().redirect().map(target -> redirected(connector, target)).orElse(connector));
+        config.events().redirect().map(target -> redirected(connector, target)).orElse(connector),
+        channels.traffic(TraceChannels.CETP));
   }
 
   /**

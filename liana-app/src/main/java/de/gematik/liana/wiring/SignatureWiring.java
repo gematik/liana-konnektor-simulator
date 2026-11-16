@@ -23,6 +23,7 @@ import de.gematik.liana.adapter.fake.CardImages;
 import de.gematik.liana.config.LianaConfig;
 import de.gematik.liana.crypto.CadesSignatures;
 import de.gematik.liana.crypto.CmsVerifier;
+import de.gematik.liana.crypto.P12Cards;
 import de.gematik.liana.crypto.PadesSignatures;
 import de.gematik.liana.crypto.SimulatedOcsp;
 import de.gematik.liana.crypto.TrustSpace;
@@ -105,7 +106,7 @@ public class SignatureWiring {
   @Produces
   @Singleton
   CardToCard cardToCard(LianaConfig config) {
-    CardImages images = new CardImages(config.cardImages());
+    CardImages images = P12Cards.images(config);
     List<Cvc> links = TerminalIdentity.links(config.pki().tsl());
     Optional<TerminalIdentity> gsmcK =
         config

@@ -86,6 +86,9 @@ public interface LianaConfig {
    */
   List<Path> cardImages();
 
+  /** PKCS#12 in {@link #cardImages()}, from which LIANA builds an SMC-B (LIANA-220). */
+  CardP12 cardP12();
+
   /**
    * Cards and identities in the structure of the TI (LIANA-98, decision-14): connector with gSMC-K,
    * card terminals with slots. The only place where LIANA configures identities.
@@ -475,7 +478,7 @@ public interface LianaConfig {
     Duration timeout();
   }
 
-  /** Observation of the card APDUs (LIANA-27). */
+  /** Tracing to a Tiger proxy (LIANA-27, LIANA-195). */
   interface Trace {
     /**
      * Base URL of a Tiger proxy (admin port); if set, every APDU to a card goes there via {@code
@@ -486,6 +489,21 @@ public interface LianaConfig {
     /** Timeout for connection and request per push. */
     @WithDefault("500ms")
     Duration pushTimeout();
+
+    /**
+     * Address of the Tiger WebUI as the browser reaches it, for the link on the Control Center page
+     * Verkehr (LIANA-195.03); without a value {@code <push-url>/webui}. LIANA itself reads the
+     * messages via {@code push-url}.
+     */
+    Optional<URI> webuiUrl();
+
+    /**
+     * Symbolic name of this connector in the trace, as {@code name/IP:Port} (LIANA-195.04); Tiger
+     * shows it in sequence diagram and topology. Without a value the host of {@code liana.tls.url}
+     * or {@code liana.kon-export.url}, otherwise {@code konnektor}. Not an IP, not {@code
+     * localhost}.
+     */
+    Optional<String> name();
   }
 
   /** Cards and identities in the structure of the TI (LIANA-98). */
@@ -723,5 +741,15 @@ public interface LianaConfig {
      * data} into the .kon.
      */
     Optional<Path> keystore();
+  }
+
+  interface CardP12 {
+
+    /**
+     * Passwords LIANA tries in this order; after them the empty one. The test PKCS#12 of gematik
+     * carry {@code 00}.
+     */
+    @WithDefault("00,changeit,gematik,12345678,123456,liana")
+    List<String> passwords();
   }
 }

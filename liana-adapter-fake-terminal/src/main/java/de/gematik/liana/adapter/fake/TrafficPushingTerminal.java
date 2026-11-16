@@ -29,16 +29,15 @@ import java.time.Instant;
 import java.util.HexFormat;
 
 /**
- * Card terminal that additionally reports every APDU to a Tiger proxy ({@link TrafficPush}).
- * Everything else goes unchanged to the actual terminal; if the APDU fails at the card, nothing is
- * reported.
+ * Card terminal that additionally reports every APDU ({@link ApduTraffic}). Everything else goes
+ * unchanged to the actual terminal; if the APDU fails at the card, nothing is reported.
  */
 public final class TrafficPushingTerminal implements CardTerminal {
 
   private final CardTerminal terminal;
-  private final TrafficPush push;
+  private final ApduTraffic push;
 
-  public TrafficPushingTerminal(CardTerminal terminal, TrafficPush push) {
+  public TrafficPushingTerminal(CardTerminal terminal, ApduTraffic push) {
     this.terminal = terminal;
     this.push = push;
   }

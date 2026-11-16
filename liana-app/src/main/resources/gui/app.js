@@ -33,6 +33,7 @@ import { Subscriptions } from './pages/subscriptions.js';
 import { Tls } from './pages/tls.js';
 import { Profile } from './pages/profile.js';
 import { Infomodel } from './pages/infomodel.js';
+import { Trace } from './pages/trace.js';
 
 /** @typedef {{ id: string, label: string, page: (props: { openReset: () => void }) => any }} Route */
 
@@ -41,6 +42,7 @@ const ROUTES = [
   { id: '', label: 'Übersicht', page: Overview },
   { id: 'terminals', label: 'Kartenterminals', page: Terminals },
   { id: 'log', label: 'Systemprotokoll', page: Log },
+  { id: 'trace', label: 'Verkehr', page: Trace },
   { id: 'subscriptions', label: 'Ereignis-Abos', page: Subscriptions },
   { id: 'tls', label: 'TLS / mTLS', page: Tls },
   { id: 'profile', label: 'Profil', page: Profile },

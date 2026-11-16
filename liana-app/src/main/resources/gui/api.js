@@ -128,8 +128,22 @@ function range(from, to) {
 }
 
 /**
+ * Query for /admin/trace/messages: Tiger filter and time window, omitted when empty.
+ * @param {string} filter
+ * @param {string} from
+ * @param {string} to
+ */
+function traceQuery(filter, from, to) {
+  const query = new URLSearchParams();
+  if (filter) query.set('filter', filter);
+  if (from) query.set('from', from);
+  if (to) query.set('to', to);
+  return query.size ? '?' + query : '';
+}
+
+/**
  * The endpoints of the admin API that the GUI uses (docs/handbuch.md, section Admin-API). Placeholders in the paths:
- * kt, slot, client; GuiTest fills in example values.
+ * kt, slot, client, channel; GuiTest fills in example values.
  */
 export const admin = {
   ready: () => get(`/admin/ready`),
@@ -176,6 +190,12 @@ export const admin = {
   deviations: () => get(`/admin/deviations`),
   /** Service discovery (TUC_KON_054) for all configured eHealth CTs. */
   ctDiscovery: () => post(`/admin/ct-discovery`, {}),
+  /** Where LIANA reports which parts of its traffic (LIANA-195.03). */
+  trace: () => get(`/admin/trace`),
+  /** Messages in the linked Tiger proxy. @param {string} filter @param {string} from @param {string} to */
+  traceMessages: (filter, from, to) => get(`/admin/trace/messages${traceQuery(filter, from, to)}`),
+  /** Switches a trace channel on or off (LIANA-195.05). @param {string} channel @param {boolean} on */
+  traceChannel: (channel, on) => put(`/admin/trace/channels/${seg(channel)}`, { on }),
   /** Push: log, card, terminal, state, subscription, session, resync. */
   events: () => stream(`/admin/events`),
 };

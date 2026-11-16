@@ -3,7 +3,8 @@
 # Fresh TSL (LIANA-180): fetches the RU TSL, on error or an older SequenceNumber the checked-in copy; never
 # fails. TSL_REFRESH (CI: build number) forces a new fetch, otherwise the build cache applies. Source and SequenceNumber
 # appear in the build log (--progress=plain).
-FROM registry.access.redhat.com/ubi9/ubi-minimal AS tsl
+# The TSL is the same for every platform: this stage runs on the build host, also for --platform linux/arm64 (LIANA-215).
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/ubi-minimal AS tsl
 ARG TSL_URL=https://download-ref.tsl.ti-dienste.de/ECC/ECC-RSA_TSL-ref.xml
 ARG TSL_REFRESH=
 COPY support/pki/tsl/ECC-RSA_TSL-ref.xml /tsl/baseline.xml

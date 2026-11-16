@@ -107,6 +107,50 @@ class SicctConnectionTest {
 
   @Test
   @DisplayName(
+      "LIANA-195: jeder Umschlag geht so an Traffic, wie er auf der Leitung steht, beide Enden als "
+          + "Name/IP:Port (LIANA-195.04); das R-Kommando trägt die UUID seines C-Kommandos, das Ereignis keine")
+  void verkehrWieAufDerLeitung() throws Exception {
+    record Report(byte[] message, String sender, String receiver, String responseTo) {}
+    List<Report> reports = new CopyOnWriteArrayList<>();
+    connection.close();
+    Socket konnektor = new Socket(InetAddress.getLoopbackAddress(), server.getLocalPort());
+    kt = server.accept();
+    ktIn = kt.getInputStream();
+    ktOut = kt.getOutputStream();
+    connection =
+        new SicctConnection(
+            "KT-S1",
+            "kt-s1.local",
+            konnektor,
+            events::add,
+            (ctId, host, reason) -> {},
+            (message, sender, receiver, time, responseTo) -> {
+              reports.add(new Report(message, sender, receiver, responseTo));
+              return "uuid-" + reports.size();
+            });
+
+    CompletableFuture<byte[]> answer = CompletableFuture.supplyAsync(() -> transmit(1, "00A4040C"));
+    SicctEnvelope command = SicctEnvelope.read(ktIn);
+    ktSends(new SicctEnvelope(SicctEnvelope.Type.EVENT, 0, 0xFD00, HEX.parseHex("84020002")));
+    ktSends(response(command, "9000"));
+    answer.get(2, TimeUnit.SECONDS);
+
+    assertEquals(3, reports.size());
+    // LIANA-195.04: both ends as name/IP:Port, the CT under its CT ID without a configured host
+    String kt = "KT-S1/127.0.0.1:" + server.getLocalPort();
+    String liana = "konnektor/127.0.0.1:" + konnektor.getLocalPort();
+    assertArrayEquals(command.encode(), reports.get(0).message());
+    assertEquals(liana, reports.get(0).sender());
+    assertEquals(kt, reports.get(0).receiver());
+    assertEquals(kt, reports.get(1).sender());
+    assertEquals(null, reports.get(1).responseTo());
+    assertArrayEquals(response(command, "9000").encode(), reports.get(2).message());
+    assertEquals(liana, reports.get(2).receiver());
+    assertEquals("uuid-1", reports.get(2).responseTo());
+  }
+
+  @Test
+  @DisplayName(
       "§6.2.4.3: R-Kommandos finden ihr C-Kommando über die Sequenznummer, auch in anderer Reihenfolge; "
           + "Ereignisse dazwischen gehen an den Empfänger")
   void antwortenUndEreignisse() throws Exception {

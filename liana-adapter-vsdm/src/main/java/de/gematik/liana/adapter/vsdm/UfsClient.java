@@ -21,6 +21,7 @@ package de.gematik.liana.adapter.vsdm;
 
 import de.gematik.liana.kern.access.Context;
 import de.gematik.liana.kern.card.CardObject;
+import de.gematik.liana.kern.trace.Traffic;
 import de.gematik.liana.kern.vsdm.UpdateFlagService;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -57,9 +58,17 @@ public final class UfsClient implements UpdateFlagService {
   private final Connector connector;
   private final Clock clock;
 
+  private final Traffic traffic;
+
   public UfsClient(Connector connector, Clock clock) {
+    this(connector, clock, Traffic.OFF);
+  }
+
+  /** {@code traffic} receives request and response as on the wire (LIANA-195). */
+  public UfsClient(Connector connector, Clock clock, Traffic traffic) {
     this.connector = connector;
     this.clock = clock;
+    this.traffic = traffic;
   }
 
   @Override
@@ -76,10 +85,29 @@ public final class UfsClient implements UpdateFlagService {
     Instant deadline = clock.instant().plus(readTimeout);
     try (Socket socket = connector.connect(url, context, smb, connectTimeout)) {
       OutputStream out = socket.getOutputStream();
-      out.write(head(url, body.length).getBytes(StandardCharsets.US_ASCII));
+      byte[] head = head(url, body.length).getBytes(StandardCharsets.US_ASCII);
+      out.write(head);
       out.write(body);
       out.flush();
-      Response response = read(socket, deadline, clock);
+      // LIANA-195.04: both ends with the IP of the socket, the UFS named after its URL
+      String ufs = Traffic.address(url.getHost(), socket.getInetAddress(), port(url));
+      String liana = traffic.self(socket.getLocalAddress(), socket.getLocalPort());
+      String request = null;
+      if (traffic.active()) {
+        byte[] message = new byte[head.length + body.length];
+        System.arraycopy(head, 0, message, 0, head.length);
+        System.arraycopy(body, 0, message, head.length, body.length);
+        request = traffic.report(message, liana, ufs, Instant.now(), null);
+      }
+      Input in = new Input(socket, deadline, clock);
+      Response response;
+      try {
+        response = read(in);
+      } finally {
+        if (traffic.active() && in.raw.size() > 0) {
+          traffic.report(in.raw.toByteArray(), ufs, liana, Instant.now(), request);
+        }
+      }
       // SOAP 1.1: fault with HTTP 500, response with 200
       if (response.status != 200 && response.status != 500) {
         throw new IOException("HTTP " + response.status + " von " + url);
@@ -109,8 +137,14 @@ public final class UfsClient implements UpdateFlagService {
   private record Response(int status, byte[] body) {}
 
   /** Status line, headers, body by Content-Length, chunked or until the end of the connection. */
-  private static Response read(Socket socket, Instant deadline, Clock clock) throws IOException {
-    Input in = new Input(socket, deadline, clock);
+  private static int port(URI url) {
+    if (url.getPort() >= 0) {
+      return url.getPort();
+    }
+    return "https".equals(url.getScheme()) ? 443 : 80;
+  }
+
+  private static Response read(Input in) throws IOException {
     String status = in.line();
     String[] parts = status.split(" ", 3);
     if (parts.length < 2 || !parts[0].startsWith("HTTP/1.")) {
@@ -163,6 +197,9 @@ public final class UfsClient implements UpdateFlagService {
     private final Clock clock;
     private long total;
 
+    /** Everything read, for the trace. */
+    final ByteArrayOutputStream raw = new ByteArrayOutputStream();
+
     Input(Socket socket, Instant deadline, Clock clock) throws IOException {
       this.socket = socket;
       this.in = socket.getInputStream();
@@ -188,6 +225,9 @@ public final class UfsClient implements UpdateFlagService {
         }
       }
       total += Math.max(n, 0);
+      if (n > 0) {
+        raw.write(buffer, 0, n);
+      }
       if (total > MAX_BODY) {
         throw new IOException("Antwort größer als " + MAX_BODY + " Byte");
       }

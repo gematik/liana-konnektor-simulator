@@ -19,18 +19,19 @@
  */
 package de.gematik.liana.wiring;
 
+import de.gematik.liana.adapter.fake.ApduTraffic;
 import de.gematik.liana.adapter.fake.CardEngine;
 import de.gematik.liana.adapter.fake.CardImages;
 import de.gematik.liana.adapter.fake.FakeTerminals;
 import de.gematik.liana.adapter.fake.KartosEngine;
 import de.gematik.liana.adapter.fake.KartosLocator;
-import de.gematik.liana.adapter.fake.TrafficPush;
 import de.gematik.liana.adapter.fake.TrafficPushingTerminal;
 import de.gematik.liana.adapter.sicct.DiscoveryChannel;
 import de.gematik.liana.adapter.sicct.SicctTerminals;
 import de.gematik.liana.config.LianaConfig;
 import de.gematik.liana.crypto.EgkCertificateCheck;
 import de.gematik.liana.crypto.KtTls;
+import de.gematik.liana.crypto.P12Cards;
 import de.gematik.liana.crypto.ScenarioSignerCheck;
 import de.gematik.liana.crypto.SignedScenarios;
 import de.gematik.liana.crypto.SmktCertificateCheck;
@@ -63,12 +64,14 @@ import de.gematik.liana.kern.management.OperatingState;
 import de.gematik.liana.kern.terminal.CardTerminal;
 import de.gematik.liana.kern.terminal.TerminalRegistry;
 import de.gematik.liana.kern.terminal.TimeLimitedTerminal;
+import de.gematik.liana.kern.trace.Traffic;
 import de.gematik.liana.kern.vendor.PeerDeviations;
 import de.gematik.liana.robot.KartosRobots;
 import de.gematik.liana.sm.ImageGsmcK;
 import de.gematik.liana.sm.ImageObjects;
 import de.gematik.liana.sm.TerminalIdentity;
 import de.gematik.liana.sm.TrustedChannelTerminal;
+import de.gematik.liana.trace.TraceChannels;
 import io.quarkus.runtime.Startup;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Disposes;
@@ -101,7 +104,9 @@ public class TerminalWiring {
 
   private static final Logger LOG = Logger.getLogger(TerminalWiring.class);
 
-  private TrafficPush push;
+  /** APDU reports per fake CT, also for the SM plaintext (LIANA-28). */
+  private final java.util.Map<String, ApduTraffic> push = new java.util.HashMap<>();
+
   private DiscoveryChannel discovery;
 
   private final ScheduledExecutorService expiry =
@@ -163,14 +168,15 @@ public class TerminalWiring {
                             e.getValue().transportPin(),
                             e.getValue().signatureTime().orElse(Duration.ZERO)))
                 .toList();
-    return new FakeTerminals(specs, new CardImages(config.cardImages()), engine);
+    return new FakeTerminals(specs, P12Cards.images(config), engine);
   }
 
   /**
    * Terminal registry of the core: every card access at most CARD_TIMEOUT_CARD long ({@link
-   * TimeLimitedTerminal}, 4094); with {@code liana.trace.push-url} every CT additionally reports
-   * its APDUs to a Tiger proxy (LIANA-27). eHealth CTs among the robot terminals wait for the robot
-   * before the PIN command with {@code liana.robot.await-pin} (LIANA-112.15).
+   * TimeLimitedTerminal}, 4094); with {@code liana.trace.push-url} every fake CT additionally
+   * reports its APDUs to a Tiger proxy (LIANA-27), an eHealth CT its SICCT traffic (LIANA-195).
+   * eHealth CTs among the robot terminals wait for the robot before the PIN command with {@code
+   * liana.robot.await-pin} (LIANA-112.15).
    */
   @Produces
   @Singleton
@@ -180,8 +186,10 @@ public class TerminalWiring {
       LianaConfig config,
       Provider<CardList> cards,
       ManagementSettings settings,
-      KartosRobots robots) {
-    return terminalRegistry(fakeTerminals, sicctTerminals, config, cards, settings, robots::wrap);
+      KartosRobots robots,
+      TraceChannels channels) {
+    return terminalRegistry(
+        fakeTerminals, sicctTerminals, config, cards, settings, robots::wrap, channels);
   }
 
   /** Without robot terminals via kartos. */
@@ -190,14 +198,16 @@ public class TerminalWiring {
       SicctTerminals sicctTerminals,
       LianaConfig config,
       Provider<CardList> cards,
-      ManagementSettings settings) {
+      ManagementSettings settings,
+      TraceChannels channels) {
     return terminalRegistry(
         fakeTerminals,
         sicctTerminals,
         config,
         cards,
         settings,
-        java.util.function.UnaryOperator.identity());
+        java.util.function.UnaryOperator.identity(),
+        channels);
   }
 
   private TerminalRegistry terminalRegistry(
@@ -206,20 +216,25 @@ public class TerminalWiring {
       LianaConfig config,
       Provider<CardList> cards,
       ManagementSettings settings,
-      java.util.function.UnaryOperator<CardTerminal> robots) {
+      java.util.function.UnaryOperator<CardTerminal> robots,
+      TraceChannels channels) {
     List<CardTerminal> terminals = new ArrayList<>();
     fakeTerminals.terminals().forEach(terminal -> terminals.add(terminal));
+    int fakes = terminals.size();
     sicctTerminals.terminals().forEach(terminal -> terminals.add(robots.apply(terminal)));
     terminals.replaceAll(terminal -> new TimeLimitedTerminal(terminal, settings::cardTimeout));
-    config
-        .trace()
-        .pushUrl()
-        .ifPresent(
-            url -> {
-              push = new TrafficPush(url, config.trace().pushTimeout());
-              LOG.infof("Karten-APDUs gehen per Traffic-Push an %s", push.target());
-              terminals.replaceAll(terminal -> new TrafficPushingTerminal(terminal, push));
-            });
+    push.clear();
+    // eHealth CTs report their SICCT traffic themselves (SicctConnection); each CT its own channel
+    // (LIANA-195.05)
+    for (int i = 0; i < fakes; i++) {
+      String id = terminals.get(i).id();
+      Traffic traffic = channels.traffic(TraceChannels.terminal(id));
+      if (traffic.active()) {
+        ApduTraffic apdus = new ApduTraffic(traffic);
+        push.put(id, apdus);
+        terminals.set(i, new TrafficPushingTerminal(terminals.get(i), apdus));
+      }
+    }
     if (config.card().terminateSecureMessaging()) {
       terminals.replaceAll(terminal -> trustedChannel(terminal, config, cards));
     }
@@ -235,7 +250,7 @@ public class TerminalWiring {
    */
   private CardTerminal trustedChannel(
       CardTerminal terminal, LianaConfig config, Provider<CardList> cards) {
-    CardImages images = new CardImages(config.cardImages());
+    CardImages images = P12Cards.images(config);
     TerminalIdentity identity =
         TerminalIdentity.of(
             images.resolve(
@@ -261,8 +276,8 @@ public class TerminalWiring {
                                 }))
                 .map(ImageObjects::load);
     TrustedChannelTerminal.Listener plaintext =
-        push != null
-            ? push::plaintext
+        push.containsKey(terminal.id())
+            ? push.get(terminal.id())::plaintext
             : (kt, slot, command, sent, response, received) ->
                 LOG.debugf(
                     "%s/%d SM-Klartext %s -> %s",
@@ -307,7 +322,8 @@ public class TerminalWiring {
       TrustSpace trustSpace,
       Clock clock,
       SystemLog systemLog,
-      PeerDeviations deviations)
+      PeerDeviations deviations,
+      TraceChannels channels)
       throws GeneralSecurityException, IOException {
     LianaConfig.Ctm ctm = config.ctm();
     List<SicctTerminals.Spec> specs =
@@ -369,6 +385,7 @@ public class TerminalWiring {
     LOG.infof(
         "Dienstsuche auf UDP %d (CTM_SERVICE_ANNOUNCEMENT_PORT), eHealth-KTs %s",
         discovery.port(), specs.stream().map(SicctTerminals.Spec::ctId).toList());
+    terminals.trace(ct -> channels.traffic(TraceChannels.terminal(ct)));
     Thread start = new Thread(() -> terminals.start(discovery), "liana-ctm-start");
     start.setDaemon(true);
     start.start();
@@ -380,12 +397,6 @@ public class TerminalWiring {
       discovery.close();
     }
     terminals.close();
-  }
-
-  void close(@Disposes TerminalRegistry registry) {
-    if (push != null) {
-      push.close();
-    }
   }
 
   @Produces
@@ -614,7 +625,7 @@ public class TerminalWiring {
       CardList cards,
       CardAccess cardAccess,
       CardCertificates certificates) {
-    CardImages images = new CardImages(config.cardImages());
+    CardImages images = P12Cards.images(config);
     Optional<GsmcK> gsmcK =
         config
             .infrastructure()
@@ -647,7 +658,7 @@ public class TerminalWiring {
   @Produces
   @Singleton
   @Startup
-  TrustSpace trustSpace(LianaConfig config) {
+  TrustSpace trustSpace(LianaConfig config, TraceChannels channels) {
     TrustSpace trustSpace =
         TrustSpace.load(
             config.pki().tsl(),
@@ -679,7 +690,11 @@ public class TerminalWiring {
             () -> LOG.info("ohne BNetzA-VL: QES-Prüfung ohne Aussteller"));
     LianaConfig.TslOnline online = config.pki().tslOnline();
     de.gematik.liana.crypto.OnlineTsl.start(
-        trustSpace, online.mode(), online.url(), online.timeout());
+        trustSpace,
+        online.mode(),
+        online.url(),
+        online.timeout(),
+        channels.traffic(TraceChannels.TSL));
     return trustSpace;
   }
 

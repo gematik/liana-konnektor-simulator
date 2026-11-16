@@ -57,6 +57,12 @@ public final class TestPorts {
   /** Stub UFS of the Onlineprüfung (LIANA-141). */
   public static final int UFS = free();
 
+  /** Stub Tiger proxy for the traffic push (LIANA-195). */
+  public static final int TRACE = free();
+
+  /** Stub Tiger WebUI for the page Verkehr (LIANA-195.03). */
+  public static final int TIGER = free();
+
   static {
     // The @QuarkusIntegrationTest launcher takes the HTTP port from the test configuration, not
     // from the

@@ -174,7 +174,11 @@ public class AdminApi {
       boolean strict,
       int konnektorPort,
       int adminPort,
-      String terminalMode) {}
+      String terminalMode,
+      String started) {}
+
+  /** Start of this LIANA, for "seit Start" on the page Verkehr (LIANA-195.06). */
+  private final java.time.Instant started = java.time.Instant.now();
 
   /**
    * Vendor profile (decision-10): {@code vendor} active, {@code boot} from the YAML, target of
@@ -314,6 +318,7 @@ public class AdminApi {
       String cardHandle,
       String ctId,
       int slotNo,
+      String started,
       String deadline,
       String timer) {}
 
@@ -533,7 +538,8 @@ public class AdminApi {
         deviations.strict(),
         konnektorPort,
         adminPort,
-        LianaConfig.Mode.of(config.infrastructure().terminals()).value());
+        LianaConfig.Mode.of(config.infrastructure().terminals()).value(),
+        started.toString());
   }
 
   List<Terminal> terminals() {
@@ -851,7 +857,7 @@ public class AdminApi {
         index.images().stream()
             .map(
                 image ->
-                    new Image(image.name(), image.file().toString(), image.iccsn().orElse(null)))
+                    new Image(image.name(), image.source().toString(), image.iccsn().orElse(null)))
             .toList());
   }
 
@@ -889,6 +895,7 @@ public class AdminApi {
                         s.cardHandle(),
                         s.ctId(),
                         s.slotNo(),
+                        s.started().toString(),
                         s.deadline().toString(),
                         s.timer()))
             .toList(),

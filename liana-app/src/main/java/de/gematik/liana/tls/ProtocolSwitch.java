@@ -89,7 +89,12 @@ public final class ProtocolSwitch {
   }
 
   private static HttpServerOptions internal(HttpServerOptions options) {
-    return options.setHost(LOOPBACK_ADDRESS).setPort(0).setUseProxyProtocol(true);
+    // HTTP/1.1 like a Konnektor, no h2c upgrade (the trace sees HTTP/1.x only, LIANA-195)
+    return options
+        .setHost(LOOPBACK_ADDRESS)
+        .setPort(0)
+        .setUseProxyProtocol(true)
+        .setHttp2ClearTextEnabled(false);
   }
 
   private static void route(NetSocket client, NetClient loopback, int plainPort, int tlsPort) {

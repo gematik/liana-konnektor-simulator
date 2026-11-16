@@ -110,6 +110,34 @@ class OnlineTslTest {
   }
 
   @Test
+  @DisplayName(
+      "LIANA-195: der Abruf geht als GET und Antwort mit der TSL an Traffic, die Antwort mit der UUID "
+          + "der Anfrage")
+  void verkehr() throws Exception {
+    record Report(String message, String sender, String receiver, String responseTo) {}
+    List<Report> reports = new java.util.concurrent.CopyOnWriteArrayList<>();
+    de.gematik.liana.kern.trace.Traffic traffic =
+        (message, from, to, time, responseTo) -> {
+          reports.add(
+              new Report(new String(message, StandardCharsets.UTF_8), from, to, responseTo));
+          return "uuid-" + reports.size();
+        };
+    byte[] tsl = OnlineTsl.fetch(url("/newer.xml"), TIMEOUT, traffic);
+
+    assertEquals(2, reports.size());
+    String tslServer = "127.0.0.1:" + server.getAddress().getPort();
+    assertTrue(reports.get(0).message().startsWith("GET /newer.xml HTTP/1.1\r\n"));
+    // the JDK HttpClient hides the socket: LIANA only with its name (LIANA-195.04)
+    assertEquals("konnektor", reports.get(0).sender());
+    assertEquals(tslServer, reports.get(0).receiver());
+    assertTrue(reports.get(1).message().startsWith("HTTP/1.1 200\r\n"));
+    assertTrue(
+        reports.get(1).message().endsWith(new String(tsl, StandardCharsets.UTF_8)),
+        "Body der Antwort");
+    assertEquals("uuid-1", reports.get(1).responseTo());
+  }
+
+  @Test
   @DisplayName("mode off: kein Abruf, die eingebackene TSL bleibt")
   void off() throws Exception {
     TrustSpace trustSpace = baked();

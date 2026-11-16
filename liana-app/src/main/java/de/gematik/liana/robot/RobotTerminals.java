@@ -23,6 +23,7 @@ import de.gematik.liana.adapter.fake.CardImages;
 import de.gematik.liana.adapter.fake.FakeTerminals;
 import de.gematik.liana.adapter.fake.PinInput;
 import de.gematik.liana.config.LianaConfig;
+import de.gematik.liana.crypto.P12Cards;
 import de.gematik.liana.kern.card.CardList;
 import jakarta.inject.Provider;
 import jakarta.inject.Singleton;
@@ -94,7 +95,7 @@ public class RobotTerminals {
     this.terminals = terminals;
     this.cardList = cardList;
     this.kartos = kartos;
-    this.images = new CardImages(config.cardImages());
+    this.images = P12Cards.images(config);
     this.awaitPin = config.robot().awaitPin();
     this.robotTerminals = List.copyOf(config.robot().terminals());
     this.cards =

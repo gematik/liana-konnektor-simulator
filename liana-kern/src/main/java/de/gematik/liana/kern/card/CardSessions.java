@@ -83,15 +83,16 @@ public final class CardSessions {
   public record Change(String sessionId, boolean open) {}
 
   /**
-   * A running session for the Admin API (LIANA-149): SessionID, card, expiry of the APDU scenario
-   * timer (A_25860-01) and which timer is running ({@link Timeout#KONNEKTOR} or {@link
-   * Timeout#POPP}).
+   * A running session for the Admin API (LIANA-149): SessionID, card, start (time window of its
+   * traffic, LIANA-195.03), expiry of the APDU scenario timer (A_25860-01) and which timer is
+   * running ({@link Timeout#KONNEKTOR} or {@link Timeout#POPP}).
    */
   public record OpenSession(
       String sessionId,
       String cardHandle,
       String ctId,
       int slotNo,
+      Instant started,
       Instant deadline,
       String timer) {}
 
@@ -116,6 +117,7 @@ public final class CardSessions {
     final String id;
     final CardObject card;
     final CardLocks.Lock lock;
+    final Instant started;
     final ReentrantLock busy = new ReentrantLock();
     long nextSequence;
     // volatile for {@link #open()}, which reads without {@link #busy}
@@ -123,10 +125,11 @@ public final class CardSessions {
     volatile String timer;
     volatile boolean ended;
 
-    Session(String id, CardObject card, CardLocks.Lock lock, Instant deadline) {
+    Session(String id, CardObject card, CardLocks.Lock lock, Instant started, Instant deadline) {
       this.id = id;
       this.card = card;
       this.lock = lock;
+      this.started = started;
       this.deadline = deadline;
       this.timer = Timeout.KONNEKTOR;
     }
@@ -280,6 +283,7 @@ public final class CardSessions {
                     session.card.cardHandle(),
                     session.card.ctId(),
                     session.card.slotNo(),
+                    session.started,
                     session.deadline,
                     session.timer))
         .toList();
@@ -309,9 +313,9 @@ public final class CardSessions {
    */
   private String startSession(CardObject card) {
     CardLocks.Lock lock = locks.lock(card.cardHandle());
+    Instant now = clock.instant();
     Session session =
-        new Session(
-            UUID.randomUUID().toString(), card, lock, clock.instant().plus(sessionTimeout.get()));
+        new Session(UUID.randomUUID().toString(), card, lock, now, now.plus(sessionTimeout.get()));
     session.busy.lock();
     try {
       sessions.put(session.id, session);

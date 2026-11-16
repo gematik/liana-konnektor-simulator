@@ -22,6 +22,7 @@ package de.gematik.liana.adapter.sicct;
 import de.gematik.liana.kern.error.ConnectorError;
 import de.gematik.liana.kern.error.ConnectorException;
 import de.gematik.liana.kern.event.SystemLog;
+import de.gematik.liana.kern.trace.Traffic;
 import de.gematik.liana.kern.vendor.PeerDeviations;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -35,6 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 
@@ -187,6 +189,28 @@ public final class SicctTerminals {
       java.util.concurrent.Executors.newSingleThreadScheduledExecutor(
           daemon("liana-sicct-discovery"));
   private DiscoveryChannel discovery;
+  private volatile Function<String, Traffic> traffic = ct -> Traffic.OFF;
+
+  /**
+   * Name of the CT in the trace (LIANA-195.04): its configured host if that is a name, otherwise
+   * the CT ID; never CT.HOSTNAME, which kartos takes from the system.
+   */
+  private String traceName(String ctId) {
+    return configured.stream()
+        .filter(spec -> spec.ctId().equals(ctId))
+        .map(Spec::host)
+        .filter(Traffic::isName)
+        .findFirst()
+        .orElse(ctId);
+  }
+
+  /**
+   * Reports the SICCT traffic of all connections (LIANA-195), each CT to the traffic {@code
+   * traffic} gives for its CT ID (a channel of its own, LIANA-195.05).
+   */
+  public void trace(Function<String, Traffic> traffic) {
+    this.traffic = traffic;
+  }
 
   public SicctTerminals(
       List<Spec> configured, KtConnector connector, Settings settings, SystemLog log) {
@@ -464,9 +488,11 @@ public final class SicctTerminals {
         new SicctConnection(
             ctId,
             ct.hostname(),
+            traceName(ctId),
             connector.connect(host, ct.tcpPort()),
             event -> {},
-            (id, name, reason) -> {})) {
+            (id, name, reason) -> {},
+            traffic.apply(ctId))) {
       Duration timeout = settings.commandTimeout();
       byte[] session = connection.transmit(SicctEnvelope.FU_TERMINAL, InitCtSession.EMPTY, timeout);
       if (!InitCtSession.ok(session)) {
@@ -587,7 +613,14 @@ public final class SicctTerminals {
     }
     byte[] sharedSecret = TerminalAuthenticate.newSharedSecret();
     try (SicctConnection connection =
-        new SicctConnection(ctId, ct.hostname(), socket, event -> {}, (id, name, reason) -> {})) {
+        new SicctConnection(
+            ctId,
+            ct.hostname(),
+            traceName(ctId),
+            socket,
+            event -> {},
+            (id, name, reason) -> {},
+            traffic.apply(ctId))) {
       Duration timeout = settings.commandTimeout();
       byte[] session = connection.transmit(SicctEnvelope.FU_TERMINAL, InitCtSession.EMPTY, timeout);
       if (!InitCtSession.ok(session)) {
@@ -687,6 +720,7 @@ public final class SicctTerminals {
           new SicctConnection(
               ctId,
               ct.hostname(),
+              traceName(ctId),
               socket,
               event -> events.execute(() -> event(ctId, event)),
               (id, name, reason) -> {
@@ -701,7 +735,8 @@ public final class SicctTerminals {
                         log.ctDisconnected(id, name, reason);
                       });
                 }
-              });
+              },
+              traffic.apply(ctId));
       self.set(connection);
     } catch (IOException e) {
       closeQuietly(socket);

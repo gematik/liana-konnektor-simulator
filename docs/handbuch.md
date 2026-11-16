@@ -21,11 +21,31 @@ LIANA simuliert den Ausschnitt des Konnektors, den der TI-2.0-Testhub für **PoP
 docker build -t liana:dev .     # Dev-Image ohne lokales JDK (Abschnitt Docker)
 ```
 
-## Karten-APDUs im Tiger-Log
+## Verkehr im Tiger-Log
 
-Mit `liana.trace.push-url` (Env `LIANA_TRACE_PUSH_URL`) meldet LIANA jede APDU an eine Karte an einen Tiger-Proxy: zwei `POST /traffic` an dessen Admin-Port (Kommando `liana → KT-01:1`, Antwort zurück), im SICCT-Umschlag. Im Proxy `activateRbelParsingFor: [sicct]` setzen, dann zerlegt Rbel CLA, INS, P1, P2 und Statuswort. Ohne URL kein HTTP-Verkehr; ein fehlender oder langsamer Proxy hält keine APDU auf (`liana.trace.push-timeout`, Standard 500 ms). Rbel paart Kommando und Antwort dabei nicht.
+Mit `liana.trace.push-url` (Env `LIANA_TRACE_PUSH_URL`) meldet LIANA jede Nachricht, die sie sendet oder empfängt, an einen Tiger-Proxy: je Nachricht ein `POST /traffic` an dessen Admin-Port, als Klartext nach TLS (LIANA-195). Gemeldet werden:
+
+| Kanal | Absender → Empfänger |
+|---|---|
+| Konnektor-Schnittstelle 8080/8443: SOAP, `connector.sds`, `GET /` | Gegenstelle `IP:Port` → `<name>/<IP>:<Port>` und zurück |
+| Management-Port: KMS, CATS, Robot (nicht Admin-API und Control Center) | Gegenstelle `IP:Port` → `<name>/<IP>:<Port>` und zurück |
+| CETP an die Ereignissenke | `<name>/<IP>:<Port>` → Host aus EventTo`/<IP>:<Port>` |
+| UFS (Onlineprüfung) | `<name>/<IP>:<Port>` → Host der URL`/<IP>:<Port>` und zurück |
+| Online-TSL (der JDK-HttpClient verbirgt den Socket) | `<name>` → Host:Port der URL und zurück |
+| Karten-APDUs am Fake-KT, im SICCT-Umschlag | `<name>` → `<name>-KT-01:<Slot>` und zurück |
+| eHealth-KT: die SICCT-Umschläge, wie sie auf der Leitung stehen | `<name>/<IP>:<Port>` → `<host oder KT-01>/<IP>:<Port>` und zurück |
+
+Adressen stehen als `name/IP:Port` (LIANA-195.04): Rbel zerlegt das ohne DNS in Hostname und IP. Die IP ist die des echten Sockets, wie auf der Leitung; der Name macht den Trace laufunabhängig und unterscheidet mehrere Konnektoren in einem Proxy. Tiger übernimmt ihn als symbolischen Namen (`bundledServerName`) für Sequenzdiagramm und Topologie, bisher aber nur für HTTP-Antworten; für gepushte Anfragen und SICCT/CETP braucht es die Tiger-Änderung auf `jup/LIANA-195.01`. `<name>` ist `liana.trace.name` (Env `LIANA_TRACE_NAME`), sonst der Host aus `liana.tls.url` bzw. `liana.kon-export.url`, sonst `konnektor`; eine IP oder `localhost` als `liana.trace.name` bricht den Start ab, weil Tiger sie nicht als Namen nimmt. Ein eHealth-KT heißt nach seinem konfigurierten `host`, wenn das ein Name ist, sonst nach der CT-ID; CT.HOSTNAME nicht, kartos meldet dort den Systemnamen, im Container die Container-ID. Ein Fake-KT hat keine Leitung und keine IP.
+
+Jede Meldung trägt eine eigene `tgr-uuid`, die Antwort `tgr-response-to` mit der UUID der Anfrage, und `tgr-supplementary: true`. Ein Tiger-Proxy, der das kennt (MR tiger!3472), paart Anfrage und Antwort und verwirft eine ergänzende Nachricht, die er im Zeitfenster auch von der Leitung hat, über eine eigene Route oder einen abonnierten Proxy (`trafficEndpoints`). LIANA pusht deshalb immer alles, ohne Schalter je Kanal. Ältere Tiger-Versionen ignorieren die neuen Header: Was sie auch auf der Leitung sehen, erscheint dort doppelt, ungepaart.
+
+Im Proxy `activateRbelParsingFor: [sicct]` setzen, dann zerlegt Rbel die APDUs. Ohne URL kein Push; ein fehlender oder langsamer Proxy hält nichts auf (`liana.trace.push-timeout`, Standard 500 ms), der Fehler steht einmal im Log.
 
 Lokal, gegen einen tiger-standalone-proxy auf 18080: `LIANA_TRACE_PUSH_URL=http://localhost:18080`, aus einem Container `http://host.docker.internal:18080`.
+
+Im Control Center zeigt die Seite **Verkehr** (`#/trace`, LIANA-195.03, Layout LIANA-195.05) beides: oben die Weiterleitung dieses Starts (Zustand des Push, Ziel, Name im Trace, Zähler zugestellt, fehlgeschlagen und verloren, letzter Fehler), darunter die Kanäle mit dem Weg auf der Leitung und je einem Schalter (aufgeklappt: welche Teile LIANA meldet, Absender und Empfänger im Tiger-Log, Einstellungen wie `liana.events.redirect`), darunter die Nachrichten im Proxy. Ein ausgeschalteter Kanal meldet nichts mehr, die übrigen weiter; das gilt wie jede Änderung über die Admin-API bis zum Neustart oder Zurücksetzen (`PUT /admin/trace/channels/{id}`, LIANA-195.05). Die Admin-API und die Steuerschnittstelle eines KT melden nie. Der Zeitraum ist eine Voreinstellung (5 min, 15 min als Vorgabe, 1 h, 24 h; sie gleiten im Live-Modus mit), „Seit Start“ (Start von LIANA, `started` aus `GET /admin/info`) oder „Eigener …“ mit Von und Bis (leer: jetzt) und dem Rückfall für ein leeres Von (15 min, Seit Start oder die letzten 500), angewandt mit „Anwenden“ (LIANA-195.06). Das Filterfeld beginnt mit den Nachrichten von und an LIANA (`$.sender =~ '<name>.*' || $.receiver =~ '<name>.*'`, Name wie in der Weiterleitung); leer und Enter zeigt alle Nachrichten im Proxy, „Nur <name>“ stellt den LIANA-Filter wieder her. Ist der Proxy nicht erreichbar, zeigt die Liste das mit „Erneut versuchen“. LIANA liest die Liste über die WebUI des Proxys unter derselben `push-url` (`/webui/getMessagesWithMeta`, interne API der Tiger-WebUI, geprüft gegen Tiger 4.5.0) und reicht sie unter `/admin/trace/messages` durch; der Browser braucht den Proxy dafür nicht zu erreichen. Eine aufgeklappte Nachricht zeigt alle Metadaten, die Tiger liefert (UUID, Nummer, Zeit, Absender, Empfänger, Anfrage oder Antwort, Info, gepaarte Nachrichten), und verlinkt sie in die Tiger-WebUI (`<webUi>message/<uuid>`), die sie rendert. Filter wie in der Tiger-WebUI: JEXL oder Text in Anführungszeichen. Systemprotokoll und Kartensitzungen verlinken auf das Zeitfenster ihres Eintrags (`#/trace/<von>/<bis>`, öffnet „Eigener …“). Für den Link in die Tiger-WebUI gilt `liana.trace.webui-url`, wenn der Browser den Proxy unter einer anderen Adresse erreicht als LIANA (im Docker-Netz), sonst `<push-url>/webui/`.
+
+![Control Center, Verkehr: Zustand des Push, Kanäle mit Schalter, Zeitraum „Eigener …“ und eine aufgeklappte APDU mit ihren Metadaten](img/control-center-verkehr.png)
 
 ## Ports
 
@@ -59,7 +79,8 @@ Die GUI für Testende und Entwickler von Primärsystemen liegt auf dem Managemen
 |---|---|
 | Übersicht | Instanz, Terminals, gesteckte Karten, Ereignis-Abos, TLS, PKI, Herstellerprofil, letzte Einträge im Systemprotokoll |
 | Kartenterminals | Fake-KTs: Karte stecken (Auswahl aus dem Image-Katalog oder eigener Pfad)/ziehen, Störung setzen/löschen, PIN-Skript anhängen/leeren; eHealth-KTs: CT-Object, Korrelation, Pairing auslösen/lösen, Shared Secret, Dienstsuche. Karten und Störungen in eHealth-KTs verwaltet kartos (ausgegraut). Je Slot die Karte aus CM_CARD_LIST (CardHandle, ICCSN, Inhaber, KVNR, Zertifikatsablauf, Reservierung); darunter offene Kartensitzungen mit Restzeit und verifizierte PINs (nur PinRef). |
-| Systemprotokoll | Zeitraum, Filter nach Typ, Schweregrad und Topic, Parameter aufklappbar, LIANA/DEVIATION hervorgehoben, Live an/aus |
+| Systemprotokoll | Zeitraum, Filter nach Typ, Schweregrad und Topic, Parameter aufklappbar, LIANA/DEVIATION hervorgehoben, Live an/aus; je Eintrag Link auf den Verkehr ±5 s |
+| Verkehr | Welche Kanäle welche Teile ihrer Nachrichten wohin melden (`liana.trace.push-url`, Zähler des Push); Nachrichten im verknüpften Tiger-Proxy mit Zeitraum, Tiger-Filter (vorbelegt mit LIANAs eigenen Nachrichten) und Live, aufgeklappt mit allen Metadaten und Link in die Tiger-WebUI (Abschnitt „Verkehr im Tiger-Log“) |
 | Ereignis-Abos | Subscriptions der Clientsysteme mit Kontext, Ziel, Topic, Filter, Ablauf und letzter CETP-Zustellung (Erfolg oder Grund); nur lesend |
 | TLS / mTLS | ANCL_TLS_MANDATORY, ANCL_CAUT_MANDATORY, ANCL_DVD_OPEN, TLS_USE_ECC_FOR_CS, Serveridentität, Serverzertifikat mit Fingerprint, Client-Zertifikate, Protokoll, Cipher-Suites und Kurven; PKI mit TSL-Stand (`#/tls/pki`); nur lesend |
 | Profil | Herstellerprofil und strict umschalten, Abweichung vom Startwert markiert; Katalog der Abweichungen der Gegenstellen; Management-Einstellungen CARD_SESSION_TIMEOUT und Online-Modus |
@@ -74,10 +95,10 @@ Unter `/admin/*` auf dem Management-Port `liana.admin.port` (9090), JSON, ohne A
 | Aufruf | Wirkung |
 |---|---|
 | `GET /admin/ready` | Bereitschaft (LIANA-107): `200 {"ready":true}`, sobald der Start abgeschlossen ist (Konfiguration geprüft, KTs mit gesteckten Kartenimages, Infrastruktur, alle Ports offen, `/connector.sds` gerendert), sonst `503 {"ready":false}`, auch beim Shutdown; vor dem Start des Admin-Servers keine Verbindung |
-| `GET /admin/info` | Version, Umgebung, Herstellerprofil, Ports, Terminal-Modus |
+| `GET /admin/info` | Version, Umgebung, Herstellerprofil, Ports, Terminal-Modus, Start (`started`) |
 | `GET /admin/terminals`, `GET /admin/terminals/{id}` | KTs mit `mode` (fake, sicct), Slots und gesteckten Images, je Slot `cardType` aus CM_CARD_LIST und bei UNKNOWN `unknownReason` (LIANA-121) und den ganzen Eintrag aus CM_CARD_LIST unter `card` (wie `/admin/cards`); eHealth-KTs mit dem CT-Object (`ct`, TAB_KON_522) |
 | `GET /admin/cards` | CM_CARD_LIST (TUC_KON_001): `cardHandle`, `ctId`, `slotNo`, `insertTime`, `cardType`, `iccsn`, `cardHolderName`, `kvnr` (eGK), `cardVersion`, `certExpirationDate`, `locked` (durch eine Kartensitzung reserviert); nicht lesbare Werte fehlen |
-| `GET /admin/images` | Kartenimages aus `liana.card-images`: `directories` und je Image `name`, `file`, `iccsn` (die Werte für `PUT …/slots/{n}`) |
+| `GET /admin/images` | Kartenimages aus `liana.card-images`: `directories` und je Image `name`, `file`, `iccsn` (die Werte für `PUT …/slots/{n}`); bei einer SMC-B aus PKCS#12 ist `file` die p12 (LIANA-220) |
 | `GET /admin/sessions` | `cardSessions`: PoPP-Kartensitzungen (A_25970-01) mit Karte, Ablauf des APDU-Szenario-Timers (`deadline`) und `timer` (Konnektor, PoPP); `verifiedPins`: CARDSESSION.AUTHSTATE je Karte, Mandant und Clientsystem mit `pinRef`, nie ein PIN-Wert |
 | `GET /admin/ct-list` | CTM_CT_LIST: alle eHealth-KTs mit CT-Object, auch nur angekündigte (Korrelation „bekannt“) |
 | `POST /admin/ct-discovery` (optional `{"ctId":"KT-03"}`) | TUC_KON_054 ManuallyAdded erneut, etwa für ein KT, das beim Start nicht antwortete; ein neues CT-Object bekommt das Pairing aus der YAML. Mit `ctId` dessen Fehler (404 nicht konfiguriert, 409 mit 4033 …), ohne alle konfigurierten eHealth-KTs, Fehler dann nur im Systemprotokoll (CT/CT_ADDING_ERROR); Antwort ist CTM_CT_LIST |
@@ -104,11 +125,14 @@ Unter `/admin/*` auf dem Management-Port `liana.admin.port` (9090), JSON, ohne A
 | `GET /admin/openapi.yaml` | Diese API als OpenAPI 3.0 |
 | `GET /admin/events` | Push als Server-Sent Events (LIANA-150), siehe unten |
 | `GET /admin/log?from=…&to=…` | Systemprotokoll (TUC_KON_271): `time`, `type` (Op), `severity`, `topic`, `parameters`; Grenzen optional, ISO-8601 (`2026-10-09T12:00:00Z`), einschließlich |
+| `GET /admin/trace` | Weiterleitung des Verkehrs (LIANA-195.03): `push` (`url`, `target`, `timeout`, `state` off/ok/failing, `delivered`, `failed`, `dropped`, `lastError`), `webUi`, `routes` je Kanal mit `id` (null: meldet nie), `endpoint`, `parts`, `trace`, `on`, `pushed`, `note` |
+| `GET /admin/trace/messages?filter=…&from=…&to=…` | Nachrichten im Proxy, `getMessagesWithMeta` der Tiger-WebUI unverändert; ohne `push-url` 404, Filter abgelehnt 400, Proxy nicht erreichbar 502 |
+| `PUT /admin/trace/channels/{id}` | Kanal an- oder ausschalten (LIANA-195.05), Body `{"on": false}`; `id` aus `routes[].id`, z. B. `konnektor`, `cetp`, `kt:KT-01`; flüchtig, `POST /admin/reset` schaltet alle an; unbekannt 404 |
 | `POST /admin/reset` | YAML-Stand wiederherstellen, auch Herstellerprofil und `strict`; leert das Systemprotokoll |
 
 Push (`GET /admin/events`, `text/event-stream`, LIANA-150): jedes Ereignis mit `id`, `event` und `data` (JSON). `log` ist ein neuer Eintrag im Systemprotokoll (Felder wie `/admin/log`), `card` CARD/INSERTED, CARD/REMOVED, CARD/PIN/* und CARD/SESSION/TIMEOUT mit `topic` und `parameters` wie für Clientsysteme, `terminal` eine Änderung an einem KT (`cause` wie CT/CONNECTED, `display`, `card`, `fault`, `pin-script`, `pairing`) mit dem KT danach unter `terminal`, `state` Profil oder strict, Einstellungen, Reset oder ein schreibender KMS-Aufruf (`cause` vendor, settings, reset, kms) mit `vendor` und `settings` danach, `subscription` eine Anmeldung oder ein Zustellversuch per CETP (`cause` subscribe, unsubscribe, renew, delivery, auto-unsubscribe, expired, reset; `id`), `session` Beginn oder Ende einer Kartensitzung (`sessionId`, `open`), beide LIANA-151. Nach einem Abbruch setzt der Browser `Last-Event-ID` und bekommt alle Ereignisse seitdem aus dem Ringpuffer (`liana.admin.events.buffer`, 1000); ist die ID zu alt oder aus einem früheren Start, kommt `resync`, danach neu laden. Heartbeat-Kommentar alle `liana.admin.events.heartbeat` (15 s), höchstens `liana.admin.events.max-streams` (16) gleichzeitig, darüber 503. `curl -N localhost:9090/admin/events` zeigt den Stream.
 
-Fehler kommen als `{"error":"…"}`: unbekannter KT, Slot, Image oder unbekanntes Clientsystem → 404 (die Meldung nennt die Ordner von `liana.card-images` und ähnliche Namen), fehlender Body oder ungültige Störung → 400.
+Fehler kommen als `{"error":"…"}`: unbekannter KT, Slot, Image oder unbekanntes Clientsystem → 404 (die Meldung nennt die Ordner von `liana.card-images` und ähnliche Namen), fehlender Body, ungültige Störung oder eine unbrauchbare PKCS#12 (LIANA-220) → 400.
 
 Störungen (LIANA-41) hängen am Slot, nicht an der Karte, und wirken auf Reset, APDUs und PIN-Eingabe:
 
@@ -248,7 +272,7 @@ liana:
 - Key-Log: Die TLS-Schlüssel beider Seiten sammeln sich in `target/sharedSecrets.txt` (NSS-Format), in Wireshark unter Protocols → TLS → (Pre)-Master-Secret log filename.
 - `PS_UPSTREAM=<Adresse>`: Der Proxy geht per HTTPS an einen echten Konnektor statt an LIANA (kein LIANA-Container) und ersetzt dessen Adresse in Antworten durch `PS_HOST`.
 - CETP: LIANA liefert ohne Proxy, mit `PS_CETP=host:port` alle Ereignisse an diese Senke (`liana.events.redirect`), sonst an `EventTo`. CETP fehlt im Mitschnitt.
-- Karten-APDUs kommen per `liana.trace.push-url` an den Admin-Port des Proxys.
+- Karten-APDUs, CETP und der ausgehende Verkehr kommen per `liana.trace.push-url` an den Admin-Port des Proxys (Abschnitt „Verkehr im Tiger-Log“).
 - Eigene LIANA-Konfiguration (Infomodell des PS, Karten, Herstellerprofil): `PS_LIANA_CONFIG=pfad/application.yaml`, gemountet als `/work/config/application.yaml`; ohne Wert gilt der Boot-Zustand (M1, CS1, WP1, KT-01).
 - Jede Sitzung (`up` bis `down`) schreibt der Proxy laufend nach `support/traces/_runs/ps-sessions/<NNN>-<JJJJMMTT-HHMMSS>.tgr` (`fileSaveInfo`, LIANA-185); NNN zählt je `up` hoch, auch ohne `export` geht nichts verloren. Er parst zusätzlich `sicct` (APDUs), `X509`, `X500`, `asn1` (Zertifikate, auch in Karten-APDUs, CMS), `OCSP` (IncludeRevocationInfo) und `b64gzip` (Prüfungsnachweis); in der WebUI findet etwa `$..subject =~ '.*'` alle Nachrichten mit Zertifikat.
 - Epikur: `PS_LIANA_CONFIG=tools/testhub/ps-proxy/liana-epikur.yaml` ergänzt das Infomodell um Mandant `MEpikur`, Clientsystem `Epikur` und Arbeitsplatz `ap2` (KT-01, KT-02); der `.kon`-Export liegt dann unter `/admin/clients/Epikur/config.kon`. Der `.kon` kommt von LIANA, nennt aber die Proxy-Adressen.
@@ -377,7 +401,7 @@ Im GERROR steht als `Instance` immer `Konnektor-Lokal` (gemSpec_OM GS-A_3856-02)
 
 ## Karten und Identitäten
 
-Karten und Identitäten konfiguriert LIANA an genau einer Stelle, `liana.infrastructure`, in der Struktur der TI (LIANA-98, decision-14): der Konnektor mit seiner gSMC-K, die Kartenterminals mit ihren Slots. Welche Karte gemeint ist, wählt ein Wert aus einer bekannten Menge von Kartenimages: alle `*.xml` der Ordner in `liana.card-images`, beim Start indexiert.
+Karten und Identitäten konfiguriert LIANA an genau einer Stelle, `liana.infrastructure`, in der Struktur der TI (LIANA-98, decision-14): der Konnektor mit seiner gSMC-K, die Kartenterminals mit ihren Slots. Welche Karte gemeint ist, wählt ein Wert aus einer bekannten Menge von Kartenimages: alle `*.xml` der Ordner in `liana.card-images` und alle `*.p12`, aus denen LIANA eine SMC-B erzeugt (siehe „SMC-B aus einer PKCS#12“), beim Start indexiert.
 
 ```yaml
 liana:
@@ -404,11 +428,33 @@ liana:
 
 | Wert | wählt |
 |---|---|
-| Dateiname, mit oder ohne `.xml` | das Image dieses Namens; liegt der Name in mehreren Ordnern, der erste Ordner |
+| Dateiname, mit oder ohne `.xml` bzw. `.p12` | das Image dieses Namens; liegt der Name in mehreren Ordnern, der erste Ordner |
 | ICCSN (20 Ziffern) | das Image, dessen EF.GDO diese ICCSN trägt; passen mehrere, bricht der Start mit den Kandidaten ab |
 | absoluter Pfad | genau diese Datei, ohne Index |
 
 Dieselben Werte nehmen die Admin-API (`PUT /admin/terminals/{id}/slots/{n}`) und CATS (`cardConfigPath`, wenn er keine Datei ist). Felder eines Fake-KT (`slot-count`, `slots`, `pin`) an einem KT mit `type: sicct` bleiben unbeachtet; so kann eine überlagernde Konfiguration ein KT umstellen, etwa per Env `LIANA_INFRASTRUCTURE_TERMINALS_KT_01_TYPE=sicct` und `…_KT_01_HOST`. Die früheren Schlüssel `liana.terminals.*`, `liana.ctm.identity*` und `liana.tls.identity*` gibt es nicht mehr; stehen sie noch in einer Konfiguration oder als Umgebungsvariable, bricht der Start ab und nennt den Nachfolger.
+
+### SMC-B aus einer PKCS#12
+
+Wer nur die gematik-Test-SMC-B als PKCS#12 hat (Anfrageportal, Datei mit `AUT_E256_` im Namen; im Testhub `smcb_private.p12`) und kein Kartenimage dazu, legt die Datei in einen Ordner aus `liana.card-images` (LIANA-220). LIANA erzeugt daraus eine SMC-B: Objektsystem aus einer Vorlage (`liana-app/src/main/resources/cards/smcb-p12-template.xml`, aus `smcb-valid` ohne AUT-Identität), C.HCI.AUT.E256 und PrK.HCI.AUT.E256 aus der p12, PIN.SMC 123456. Im Slot steht der Dateiname ohne Endung:
+
+```yaml
+liana:
+  card-images: [./support/images, /opt/liana/smcb-private]   # dort liegt smcb_private.p12
+  card-p12:
+    passwords: [ "00", changeit, gematik, "12345678", "123456", liana ]   # Standard; danach das leere Passwort
+  infrastructure:
+    terminals:
+      KT-02:
+        slots:
+          1: smcb_private
+```
+
+- **Passwort:** LIANA probiert die Liste der Reihe nach, danach das leere Passwort. Die gematik-Test-p12 tragen `00`.
+- **ICCSN:** Regel A: Telematik-ID `1-SMC-B-Testkarte--<15 Ziffern>` → `80276` und diese Ziffern (so vergibt der Generator der Testkarten beide). Regel B sonst: `8027699999` und 10 Ziffern aus SHA-256 des Zertifikats, gleich bei jedem Start und als synthetisch erkennbar.
+- **Prüfung:** Die p12 braucht ein Paar aus Schlüssel und Zertifikat, einen brainpoolP256r1-Schlüssel, im Zertifikat den Typ oid_smc_b_aut und eine Telematik-ID (Admission, registrationNumber). Fehlt etwas, nennt die Startprüfung KT/Slot, Datei und Grund und bricht ab, die Admin-API antwortet 400. Eine unbrauchbare p12, die kein Slot wählt, stört nicht.
+- **Grenzen:** Nur die AUT-Identität (E256) kommt aus der p12. C.HCI.ENC, C.HCI.OSIG, die RSA-Objekte und die CV-Zertifikate bleiben aus `smcb-valid`. Eine p12 gibt es nur am Fake-KT; `kartos terminal` lädt seine Images selbst.
+- **Ablage:** Die erzeugten Images liegen unter `java.io.tmpdir/liana-p12`, benannt nach ICCSN und Inhalt; `GET /admin/images` zeigt die p12.
 
 Card-Engine der Fake-KTs ist kartos (decision-7). LIANA sucht es beim Start in dieser Reihenfolge (LIANA-121):
 1. `liana.card.kartos-bin` bzw. Env `LIANA_CARD_KARTOS_BIN`, Standard `/opt/liana/bin/kartos` (im Image).

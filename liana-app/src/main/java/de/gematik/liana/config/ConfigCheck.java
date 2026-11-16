@@ -20,6 +20,7 @@
 package de.gematik.liana.config;
 
 import de.gematik.liana.adapter.fake.CardImages;
+import de.gematik.liana.crypto.P12Cards;
 import de.gematik.liana.kern.vendor.Vendor;
 import de.gematik.liana.sm.Cvc;
 import de.gematik.liana.sm.TerminalIdentity;
@@ -233,7 +234,7 @@ public class ConfigCheck {
       errors.add("events.connect-timeout muss positiv sein");
     }
     vsdm(config.vsdm(), errors);
-    CardImages images = new CardImages(config.cardImages());
+    CardImages images = P12Cards.images(config);
     terminalConfig.forEach(
         (id, kt) -> {
           if (kt.type() != LianaConfig.Type.FAKE) {

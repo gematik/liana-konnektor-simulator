@@ -219,7 +219,7 @@ class GuiTest {
 
   /**
    * Sample values for the placeholders in the paths of api.js: KT-01, slot 1, Clientsystem from the
-   * test profile.
+   * test profile, a trace channel.
    */
   private static String sample(String template) {
     Matcher placeholders = PLACEHOLDER.matcher(template);
@@ -233,7 +233,9 @@ class GuiTest {
         value = "1";
       } else if (expression.contains("client")) {
         value = "CS1";
-      } else if (expression.startsWith("range(")) {
+      } else if (expression.contains("channel")) {
+        value = "konnektor";
+      } else if (expression.startsWith("range(") || expression.startsWith("traceQuery(")) {
         value = "";
       } else {
         throw new IllegalStateException(

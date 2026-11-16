@@ -20,11 +20,18 @@
 // @ts-check
 /**
  * Page 3 · Systemprotokoll (TUC_KON_271): GET /admin/log with from/to, filter by type, severity and topic prefix
- * in the browser, expandable parameters, LIANA/DEVIATION (LIANA-126) highlighted, live via push (LIANA-150).
+ * in the browser, expandable parameters, LIANA/DEVIATION (LIANA-126) highlighted, live via push (LIANA-150); each
+ * entry links to the traffic around it (LIANA-195.03).
  */
+
+/** Window around a log entry on the page Verkehr. */
+const AROUND_MS = 5000;
+
+/** @param {string} time ISO-8601 @param {number} offset */
+const shifted = (time, offset) => new Date(new Date(time).getTime() + offset).toISOString();
 import { html, useState } from '../vendor/preact-htm.js';
 import { admin } from '../api.js';
-import { usePoll, Badge, ApiProblem, clock, severityKind } from '../ui.js';
+import { usePoll, Badge, ApiProblem, clock, severityKind, traceHref } from '../ui.js';
 
 const TYPES = ['Alle', 'Op', 'Sec'];
 const SEVERITIES = ['Alle', 'Debug', 'Info', 'Warning', 'Error', 'Fatal'];
@@ -116,6 +123,8 @@ export function Log() {
                   <dl class="params">
                     <dt class="mono muted">time</dt><dd class="mono">${e.time}</dd>
                     ${params.map(([k, v]) => html`<dt class="mono muted">${k}</dt><dd class="mono">${v}</dd>`)}
+                    <dt class="mono muted">Verkehr</dt>
+                    <dd><a href=${traceHref(shifted(e.time, -AROUND_MS), shifted(e.time, AROUND_MS))}>Nachrichten ±5 s um diesen Eintrag</a></dd>
                   </dl>` : null}
               </div>`;
           })}
