@@ -126,6 +126,52 @@ class UfsClientTest {
 
   @Test
   @DisplayName(
+      "LIANA-195: Anfrage und Antwort gehen so an Traffic, wie sie auf der Leitung stehen (die Antwort "
+          + "chunked), die Antwort mit der UUID der Anfrage")
+  void verkehr() throws Exception {
+    record Report(String message, String sender, String receiver, String responseTo) {}
+    List<Report> reports = new java.util.ArrayList<>();
+    UfsClient traced =
+        new UfsClient(
+            TCP,
+            Clock.systemUTC(),
+            (message, from, to, time, responseTo) -> {
+              reports.add(
+                  new Report(
+                      new String(message, StandardCharsets.ISO_8859_1), from, to, responseTo));
+              return "uuid-" + reports.size();
+            });
+    String body =
+        """
+        <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/"><soap:Body>\
+        <r:GetUpdateFlagsResponse xmlns:r="http://ws.gematik.de/cm/uf/CmUfServiceResponse/v2.0" \
+        xmlns:CM="http://ws.gematik.de/cm/common/CmCommon/v2.0"><CM:ServiceReceipt><CM:ServiceLocalization>\
+        <CM:Type>UFS</CM:Type><CM:Provider>109500969</CM:Provider></CM:ServiceLocalization>\
+        <CM:Receipt>UHLDvGZ6aWZmZXIgZGVzIFVGUw==</CM:Receipt></CM:ServiceReceipt>\
+        </r:GetUpdateFlagsResponse></soap:Body></soap:Envelope>""";
+    URI url = serve(200, body);
+
+    traced.getUpdateFlags(
+        url, ICCSN, "109500969", CTX, SMB, Duration.ofSeconds(2), Duration.ofSeconds(5));
+
+    assertEquals(2, reports.size());
+    String ufs = "127.0.0.1:" + url.getPort();
+    assertTrue(reports.get(0).message().startsWith("POST /ufs HTTP/1.1\r\n"));
+    assertTrue(
+        reports.get(0).message().endsWith(new String(request.get(), StandardCharsets.UTF_8)));
+    // LIANA-195.04: LIANA as name/IP:Port of its socket
+    assertTrue(
+        reports.get(0).sender().matches("konnektor/127\\.0\\.0\\.1:\\d+"), reports.get(0).sender());
+    assertEquals(ufs, reports.get(0).receiver());
+    assertTrue(reports.get(1).message().startsWith("HTTP/1.1 200 "), reports.get(1).message());
+    assertTrue(reports.get(1).message().contains("Transfer-encoding: chunked"));
+    assertTrue(reports.get(1).message().contains("GetUpdateFlagsResponse"));
+    assertEquals(ufs, reports.get(1).sender());
+    assertEquals("uuid-1", reports.get(1).responseTo());
+  }
+
+  @Test
+  @DisplayName(
       "Tab_FM_VSDM_20 / gemSpec_SST_FD_VSDM: GetUpdateFlags mit ICCSN, Lokalisierung UFS/ProviderID im "
           + "Header und SOAPAction der WSDL, gegen die Schemas; Prüfziffer aus ServiceReceipt")
   void keineAktualisierung() throws Exception {

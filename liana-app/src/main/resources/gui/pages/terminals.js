@@ -28,7 +28,7 @@
 import { html, useState } from '../vendor/preact-htm.js';
 import { admin } from '../api.js';
 import { usePoll, useLive, useTick, Badge, Dialog, Field, ApiProblem, Empty, notify, notifyError, toApiError, copy, copyIcon,
-  clock, relative } from '../ui.js';
+  clock, relative, traceHref } from '../ui.js';
 import { terminalState } from './overview.js';
 
 /** @typedef {{ kind: 'insert' | 'fault', kt: string, slot: number } | { kind: 'pin', kt: string }
@@ -409,7 +409,7 @@ function Sessions({ sessions }) {
       ${open.length === 0 ? html`<${Empty} title="Keine Kartensitzung offen">StartCardSession am CardService öffnet eine; sie endet mit StopCardSession, Timeout oder Ziehen der Karte.<//>` : html`
         <div class="scroll">
           <table>
-            <thead><tr><th scope="col">SessionID</th><th scope="col">Karte</th><th scope="col">KT · Slot</th><th scope="col">Timer</th><th scope="col">Läuft ab</th></tr></thead>
+            <thead><tr><th scope="col">SessionID</th><th scope="col">Karte</th><th scope="col">KT · Slot</th><th scope="col">Timer</th><th scope="col">Läuft ab</th><th scope="col">Verkehr</th></tr></thead>
             <tbody>${open.map((x) => html`
               <tr key=${x.sessionId}>
                 <td class="mono" title=${x.sessionId}>${x.sessionId.slice(0, 8)}…</td>
@@ -417,6 +417,7 @@ function Sessions({ sessions }) {
                 <td class="mono">${x.ctId} · ${x.slotNo}</td>
                 <td><${Badge} kind=${x.timer === 'PoPP' ? 'info' : 'off'}>${x.timer}<//></td>
                 <td class="mono nowrap">${clock(x.deadline)} · ${relative(x.deadline, now)}</td>
+                <td><a href=${traceHref(x.started)}>seit ${clock(x.started)}</a></td>
               </tr>`)}
             </tbody>
           </table>

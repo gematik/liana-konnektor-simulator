@@ -21,11 +21,13 @@ package de.gematik.liana.adapter.sicct;
 
 import de.gematik.liana.kern.terminal.CardTimeoutException;
 import de.gematik.liana.kern.terminal.TerminalConnectionListener;
+import de.gematik.liana.kern.trace.Traffic;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +50,9 @@ import java.util.function.Consumer;
  */
 public final class SicctConnection implements AutoCloseable {
 
+  /** LIANA as sender of the commands in the Tiger log: name/IP:Port of its end (LIANA-195.04). */
+  private final String liana;
+
   private static final System.Logger LOG = System.getLogger(SicctConnection.class.getName());
 
   private final String ctId;
@@ -59,6 +64,9 @@ public final class SicctConnection implements AutoCloseable {
   private final Map<Integer, CompletableFuture<SicctEnvelope>> pending = new ConcurrentHashMap<>();
   private final AtomicBoolean closed = new AtomicBoolean();
   private final Thread reader;
+  private final Traffic traffic;
+  private final String kt;
+  private final Map<Integer, String> reported = new ConcurrentHashMap<>();
   private int nextSeq = 1;
   private volatile String closeReason;
   private volatile long lastReceived = System.nanoTime();
@@ -77,6 +85,41 @@ public final class SicctConnection implements AutoCloseable {
       Consumer<SicctEnvelope> events,
       TerminalConnectionListener connection)
       throws IOException {
+    this(ctId, hostname, socket, events, connection, Traffic.OFF);
+  }
+
+  /**
+   * @param traffic receives every envelope as it is on the wire (LIANA-195), the R-command paired
+   *     with its C-command by the sequence number
+   */
+  public SicctConnection(
+      String ctId,
+      String hostname,
+      Socket socket,
+      Consumer<SicctEnvelope> events,
+      TerminalConnectionListener connection,
+      Traffic traffic)
+      throws IOException {
+    this(ctId, hostname, ctId, socket, events, connection, traffic);
+  }
+
+  /**
+   * @param peer name of the CT in the trace (LIANA-195.04), its IP and port come from the socket;
+   *     not CT.HOSTNAME, which kartos takes from the system and which changes with every container
+   */
+  public SicctConnection(
+      String ctId,
+      String hostname,
+      String peer,
+      Socket socket,
+      Consumer<SicctEnvelope> events,
+      TerminalConnectionListener connection,
+      Traffic traffic)
+      throws IOException {
+    this.traffic = traffic;
+    // LIANA-195.04: both ends as on the wire
+    this.kt = Traffic.address(peer, socket.getInetAddress(), socket.getPort());
+    this.liana = traffic.self(socket.getLocalAddress(), socket.getLocalPort());
     this.ctId = ctId;
     this.hostname = hostname;
     this.socket = socket;
@@ -131,11 +174,15 @@ public final class SicctConnection implements AutoCloseable {
     synchronized (out) {
       seq = allocate(response);
       try {
-        out.write(SicctEnvelope.command(fu, seq, apdu).encode());
+        byte[] command = SicctEnvelope.command(fu, seq, apdu).encode();
+        // before writing: the reader thread may receive the R-command right after
+        report(seq, traffic.report(command, liana, kt, Instant.now(), null));
+        out.write(command);
         out.flush();
         lastCommand = System.nanoTime();
       } catch (IOException e) {
         pending.remove(seq);
+        reported.remove(seq);
         close("Senden fehlgeschlagen: " + e.getMessage());
         throw e;
       }
@@ -149,6 +196,7 @@ public final class SicctConnection implements AutoCloseable {
       return response.get(timeout.toMillis(), TimeUnit.MILLISECONDS).payload();
     } catch (TimeoutException e) {
       pending.remove(seq);
+      reported.remove(seq);
       throw new CardTimeoutException(
           String.format(
               "%s: keine Antwort auf seq %04X an FU %04X nach %d ms",
@@ -159,6 +207,12 @@ public final class SicctConnection implements AutoCloseable {
       pending.remove(seq);
       Thread.currentThread().interrupt();
       throw new java.io.InterruptedIOException(ctId + ": Warten auf SICCT-Antwort unterbrochen");
+    }
+  }
+
+  private void report(int seq, String uuid) {
+    if (uuid != null) {
+      reported.put(seq, uuid);
     }
   }
 
@@ -179,6 +233,11 @@ public final class SicctConnection implements AutoCloseable {
     try {
       for (SicctEnvelope envelope; (envelope = SicctEnvelope.read(in)) != null; ) {
         lastReceived = System.nanoTime();
+        String request =
+            envelope.type() == SicctEnvelope.Type.R_COMMAND
+                ? reported.remove(envelope.seq())
+                : null;
+        traffic.report(envelope.encode(), kt, liana, Instant.now(), request);
         switch (envelope.type()) {
           case R_COMMAND -> {
             CompletableFuture<SicctEnvelope> waiting = pending.remove(envelope.seq());

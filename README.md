@@ -124,6 +124,21 @@ liana.setFault("KT-01", 1, Fault.statusWord("6A82").commandPrefix("00B0").count(
 liana.reset();
 ```
 
+### Tracing
+
+With `liana.trace.push-url` set to the admin port of a Tiger proxy, LIANA pushes every message it sends or
+receives to `POST /traffic`, as plaintext after TLS: SOAP and `connector.sds`, KMS and CATS, CETP, the UFS of
+the online check, the online TSL and the card APDUs. Each message is marked as supplementary and paired with its
+request, so a Tiger proxy that also sees the traffic on the wire keeps only one copy. Addresses are
+`name/IP:Port`, the name from `liana.trace.name` (default: host of `liana.tls.url`, otherwise `konnektor`), so
+several connectors in one proxy stay apart. The Control Center page
+Verkehr shows which channel reports which parts where, switches each channel on or off, and lists the messages
+in that proxy with a link to each in the Tiger WebUI.
+
+```bash
+LIANA_TRACE_PUSH_URL=http://localhost:18080 ./mvnw quarkus:dev
+```
+
 For more examples or in-depth documentation, please refer to:
 
 - [docs/docker.md](./docs/docker.md): running the Docker image: ports, configuration, card images, TLS, Compose

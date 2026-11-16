@@ -127,14 +127,14 @@ class CardSessionsTest {
 
   @Test
   @DisplayName(
-      "A_25860-01 / LIANA-149: open() zeigt laufende Sitzungen mit Karte, Ablauf und Timer; beendete fehlen")
+      "A_25860-01 / LIANA-149: open() zeigt laufende Sitzungen mit Karte, Beginn, Ablauf und Timer; beendete fehlen")
   void offeneSitzungen() {
     String id = sessions.start(CTX, handle);
     Instant started = clock.instant();
     assertEquals(
         List.of(
             new CardSessions.OpenSession(
-                id, handle, "KT-01", 1, started.plus(sessionTimeout), "Konnektor")),
+                id, handle, "KT-01", 1, started, started.plus(sessionTimeout), "Konnektor")),
         sessions.open());
     sessions.secureSend(scenario(id, 0, 10000, "00B0910000 9000"));
     assertEquals("PoPP", sessions.open().getFirst().timer());

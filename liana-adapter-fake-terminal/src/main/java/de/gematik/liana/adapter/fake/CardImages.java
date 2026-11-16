@@ -35,40 +35,82 @@ import javax.xml.stream.XMLStreamReader;
 
 /**
  * The known card images (LIANA-98): all {@code *.xml} of the folders from {@code
- * liana.card-images}, indexed at startup. A value from the infrastructure object, the Admin API or
- * CATS selects exactly one image from them:
+ * liana.card-images}, indexed at startup; with a {@link Generator} also every {@code *.p12}, from
+ * which the generator builds an image (SMC-B from a PKCS#12, LIANA-220). A value from the
+ * infrastructure object, the Admin API or CATS selects exactly one image from them:
  *
  * <ul>
- *   <li>file name with or without {@code .xml} ({@code egk-valid}); if the same name is in several
- *       folders, the first in folder order wins,
+ *   <li>file name with or without {@code .xml} or {@code .p12} ({@code egk-valid}); if the same
+ *       name is in several folders, the first in folder order wins,
  *   <li>ICCSN, 20 digits from EF.GDO ({@code 80276883110000168584}); if several images match, the
  *       value is ambiguous,
  *   <li>absolute path, which bypasses the index.
  * </ul>
  *
- * No match or an ambiguous match is an {@link IllegalArgumentException} with the candidates. LIANA
- * finds images added after startup, because a miss rebuilds the index once.
+ * No match or an ambiguous match is an {@link IllegalArgumentException} with the candidates, as is
+ * a PKCS#12 from which the generator could not build an image; the latter only once it is selected,
+ * so that an unusable file does not block the others. LIANA finds images added after startup,
+ * because a miss rebuilds the index once.
  */
 public final class CardImages {
 
   public static final String EXTENSION = ".xml";
+
+  /** Extension of a PKCS#12 from which a {@link Generator} builds an image (LIANA-220). */
+  public static final String P12 = ".p12";
+
   private static final Pattern ICCSN = Pattern.compile("[0-9]{20}");
 
-  /** An image in the index: file and ICCSN from EF.GDO, if it is a card with EF.GDO. */
-  public record Image(Path file, Optional<String> iccsn) {
+  /**
+   * A found file from which no card can be built (PKCS#12, LIANA-220), unlike an unknown value; the
+   * Admin API answers it with 400 instead of 404.
+   */
+  public static final class Unusable extends IllegalArgumentException {
+
+    public Unusable(String message, Throwable cause) {
+      super(message, cause);
+    }
+  }
+
+  /** Builds a card image from a PKCS#12 (LIANA-220). */
+  public interface Generator {
+
+    /**
+     * The image built from {@code p12}; {@link IllegalArgumentException} with the reason if that is
+     * not possible.
+     */
+    Path generate(Path p12);
+  }
+
+  /**
+   * An image in the index: file that kartos loads, ICCSN from EF.GDO (if it is a card with EF.GDO)
+   * and the file in the folder ({@code source}, the PKCS#12 for a generated image); {@code problem}
+   * if the generator could not build the image.
+   */
+  public record Image(Path file, Optional<String> iccsn, Path source, Optional<String> problem) {
+
+    public Image(Path file, Optional<String> iccsn) {
+      this(file, iccsn, file, Optional.empty());
+    }
 
     public String name() {
-      String file = this.file.getFileName().toString();
-      return file.substring(0, file.length() - EXTENSION.length());
+      return stem(source.getFileName().toString());
     }
   }
 
   private final List<Path> directories;
+  private final Optional<Generator> generator;
   private volatile List<Image> images;
 
   public CardImages(List<Path> directories) {
+    this(directories, null);
+  }
+
+  /** With {@code generator} the index also contains the {@code *.p12} of the folders. */
+  public CardImages(List<Path> directories, Generator generator) {
     this.directories = List.copyOf(directories);
-    this.images = scan(this.directories);
+    this.generator = Optional.ofNullable(generator);
+    this.images = scan(this.directories, this.generator);
   }
 
   public List<Path> directories() {
@@ -84,7 +126,7 @@ public final class CardImages {
     try {
       return select(value, images);
     } catch (IllegalArgumentException first) {
-      List<Image> rescanned = scan(directories);
+      List<Image> rescanned = scan(directories, generator);
       if (rescanned.equals(images)) {
         throw first;
       }
@@ -96,16 +138,19 @@ public final class CardImages {
   private Path select(String value, List<Image> index) {
     Path direct = Path.of(value);
     if (direct.isAbsolute()) {
-      if (Files.isRegularFile(direct)) {
-        return direct;
+      if (!Files.isRegularFile(direct)) {
+        throw new IllegalArgumentException("Kartenimage " + value + " nicht gefunden");
       }
-      throw new IllegalArgumentException("Kartenimage " + value + " nicht gefunden");
+      if (value.endsWith(P12) && generator.isPresent()) {
+        return generate(generator.get(), direct);
+      }
+      return direct;
     }
     if (ICCSN.matcher(value).matches()) {
       List<Image> hits =
           index.stream().filter(image -> image.iccsn().filter(value::equals).isPresent()).toList();
       if (hits.size() == 1) {
-        return hits.getFirst().file();
+        return usable(hits.getFirst());
       }
       if (hits.isEmpty()) {
         throw new IllegalArgumentException(
@@ -115,15 +160,14 @@ public final class CardImages {
           "ICCSN "
               + value
               + " ist mehrdeutig, passende Images: "
-              + hits.stream().map(Image::file).toList()
+              + hits.stream().map(Image::source).toList()
               + "; Dateiname angeben");
     }
-    String name =
-        value.endsWith(EXTENSION) ? value.substring(0, value.length() - EXTENSION.length()) : value;
+    String name = stem(value);
     return index.stream()
         .filter(image -> image.name().equals(name))
         .findFirst()
-        .map(Image::file)
+        .map(CardImages::usable)
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
@@ -132,6 +176,32 @@ public final class CardImages {
                         + "' nicht gefunden in "
                         + directories
                         + candidates(name, index)));
+  }
+
+  /** The file of {@code image}; for a PKCS#12 the generator could not use, its reason. */
+  private static Path usable(Image image) {
+    if (image.problem().isPresent()) {
+      throw new Unusable(image.source() + ": " + image.problem().get(), null);
+    }
+    return image.file();
+  }
+
+  private static Path generate(Generator generator, Path p12) {
+    try {
+      return generator.generate(p12);
+    } catch (IllegalArgumentException e) {
+      throw new Unusable(p12 + ": " + e.getMessage(), e);
+    }
+  }
+
+  /** File name without {@code .xml} or {@code .p12}. */
+  private static String stem(String file) {
+    for (String extension : List.of(EXTENSION, P12)) {
+      if (file.endsWith(extension)) {
+        return file.substring(0, file.length() - extension.length());
+      }
+    }
+    return file;
   }
 
   /**
@@ -157,7 +227,7 @@ public final class CardImages {
     return similar.isEmpty() ? "" : ", ähnlich: " + similar;
   }
 
-  private static List<Image> scan(List<Path> directories) {
+  private static List<Image> scan(List<Path> directories, Optional<Generator> generator) {
     List<Image> found = new ArrayList<>();
     for (Path directory : directories) {
       if (!Files.isDirectory(directory)) {
@@ -165,15 +235,30 @@ public final class CardImages {
       }
       try (Stream<Path> files = Files.list(directory)) {
         files
-            .filter(file -> file.getFileName().toString().endsWith(EXTENSION))
+            .filter(
+                file ->
+                    file.getFileName().toString().endsWith(EXTENSION)
+                        || generator.isPresent() && file.getFileName().toString().endsWith(P12))
             .filter(Files::isRegularFile)
             .sorted()
-            .forEach(file -> found.add(new Image(file, iccsn(file))));
+            .forEach(file -> found.add(image(file, generator)));
       } catch (IOException e) {
         throw new UncheckedIOException("Ordner " + directory + " nicht lesbar", e);
       }
     }
     return List.copyOf(found);
+  }
+
+  private static Image image(Path file, Optional<Generator> generator) {
+    if (!file.getFileName().toString().endsWith(P12)) {
+      return new Image(file, iccsn(file));
+    }
+    try {
+      Path image = generator.orElseThrow().generate(file);
+      return new Image(image, iccsn(image), file, Optional.empty());
+    } catch (IllegalArgumentException e) {
+      return new Image(file, Optional.empty(), file, Optional.of(e.getMessage()));
+    }
   }
 
   /**

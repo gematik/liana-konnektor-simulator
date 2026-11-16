@@ -22,10 +22,13 @@ package de.gematik.liana.cats;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.gematik.liana.config.LianaConfig;
+import de.gematik.liana.trace.HttpTrace;
+import de.gematik.liana.trace.TraceChannels;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -59,12 +62,19 @@ public class CatsServer {
   private static final Logger LOG = Logger.getLogger(CatsServer.class);
 
   private final Vertx vertx;
+  private final TraceChannels channels;
   private final ObjectMapper json;
   private final CatsTerminals cats;
   private final List<LianaConfig.CatsTerminal> configured;
   private final Map<String, HttpServer> servers = new LinkedHashMap<>();
 
-  CatsServer(Vertx vertx, ObjectMapper json, CatsTerminals cats, LianaConfig config) {
+  CatsServer(
+      Vertx vertx,
+      ObjectMapper json,
+      CatsTerminals cats,
+      LianaConfig config,
+      TraceChannels channels) {
+    this.channels = channels;
     this.vertx = vertx;
     this.json = json;
     this.cats = cats;
@@ -79,10 +89,13 @@ public class CatsServer {
             terminal.terminal(), MOUNT, terminal.terminal());
         continue;
       }
+      Router own = router(terminal);
+      HttpTrace.install(
+          own, channels.traffic(TraceChannels.cats(terminal.terminal())), path -> true);
       HttpServer server =
           vertx
-              .createHttpServer()
-              .requestHandler(router(terminal))
+              .createHttpServer(new HttpServerOptions().setHttp2ClearTextEnabled(false))
+              .requestHandler(own)
               .listen(terminal.port().get())
               .toCompletionStage()
               .toCompletableFuture()

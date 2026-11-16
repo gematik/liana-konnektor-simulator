@@ -42,6 +42,7 @@ import de.gematik.liana.kern.vsdm.OnlineCheck;
 import de.gematik.liana.kern.vsdm.ReadKvk;
 import de.gematik.liana.kern.vsdm.ReadVsd;
 import de.gematik.liana.kern.vsdm.UfsSource;
+import de.gematik.liana.trace.TraceChannels;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Singleton;
@@ -108,7 +109,8 @@ public class VsdmWiring {
       TrustSpace trustSpace,
       Clock clock,
       CardCertificates certificates,
-      ExternalAuthentication authentication) {
+      ExternalAuthentication authentication,
+      TraceChannels channels) {
     CardTls tls = CardTls.of(trustSpace, clock);
     return new UfsClient(
         (url, context, smb, timeout) ->
@@ -119,7 +121,8 @@ public class VsdmWiring {
                     smbKey(context, smb, certificates, authentication),
                     timeout)
                 : plain(url, timeout),
-        clock);
+        clock,
+        channels.traffic(TraceChannels.UFS));
   }
 
   /** the Fachmodul VSDM: ReadVSD (LIANA-119), with Onlineprüfung (LIANA-141). */

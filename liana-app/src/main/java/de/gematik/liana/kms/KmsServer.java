@@ -30,6 +30,8 @@ import de.gematik.liana.kern.management.ComfortSettings;
 import de.gematik.liana.kern.management.ManagementSettings;
 import de.gematik.liana.kern.vendor.VendorProfile;
 import de.gematik.liana.tls.KonnektorTlsServer;
+import de.gematik.liana.trace.HttpTrace;
+import de.gematik.liana.trace.TraceChannels;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.core.Vertx;
@@ -95,6 +97,8 @@ public class KmsServer {
   private final Event<KmsChanged> changed;
   private HttpServer server;
 
+  private final TraceChannels channels;
+
   KmsServer(
       Vertx vertx,
       VendorProfile vendor,
@@ -107,7 +111,9 @@ public class KmsServer {
       ClientCertificates certificates,
       ServerIdentities identities,
       KonnektorTlsServer tlsServer,
-      Event<KmsChanged> changed) {
+      Event<KmsChanged> changed,
+      TraceChannels channels) {
+    this.channels = channels;
     this.vertx = vertx;
     this.identity = identity;
     this.vendor = vendor;
@@ -234,6 +240,7 @@ public class KmsServer {
       return;
     }
     Router root = Router.router(vertx);
+    HttpTrace.install(root, channels.traffic(TraceChannels.KMS_PORT), path -> true);
     mountOn(root);
     root.route().handler(ctx -> notImplemented(ctx.request()));
     server =

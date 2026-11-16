@@ -399,3 +399,12 @@ export function severityKind(severity) {
       return 'info';
   }
 }
+
+/**
+ * Link to the page Verkehr for a time window (LIANA-195.03); an empty end means „until now, live“.
+ * @param {string} from ISO-8601
+ * @param {string} [to] ISO-8601
+ */
+export function traceHref(from, to = '') {
+  return '#/trace/' + encodeURIComponent(from) + (to ? '/' + encodeURIComponent(to) : '');
+}

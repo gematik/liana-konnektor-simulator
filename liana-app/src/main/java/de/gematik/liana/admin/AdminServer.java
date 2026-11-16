@@ -21,6 +21,7 @@ package de.gematik.liana.admin;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.gematik.liana.adapter.fake.CardImages;
 import de.gematik.liana.adapter.fake.FakeTerminal;
 import de.gematik.liana.adapter.fake.Fault;
 import de.gematik.liana.cats.CatsServer;
@@ -28,8 +29,11 @@ import de.gematik.liana.config.LianaConfig;
 import de.gematik.liana.crypto.CryptoSelfTest;
 import de.gematik.liana.kern.error.ConnectorError;
 import de.gematik.liana.kern.error.ConnectorException;
+import de.gematik.liana.kern.trace.Traffic;
 import de.gematik.liana.kms.KmsServer;
 import de.gematik.liana.tls.ProtocolSwitch;
+import de.gematik.liana.trace.HttpTrace;
+import de.gematik.liana.trace.TraceChannels;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 import io.vertx.core.Vertx;
@@ -58,9 +62,10 @@ import org.jboss.logging.Logger;
  * KMS of the vendor profile under {@value KmsServer#MOUNT}, or for KOCO/CGM under {@code
  * /administration} (with its login), for RISE under {@code /api} ({@link KmsServer}) and CATS under
  * {@value CatsServer#MOUNT} ({@link CatsServer}, LIANA-147), the Control Center under {@code /}
- * ({@link Gui}, LIANA-148); HTTPS with ID.AK.AUT like the KMS, without client auth. All other paths
- * are management of other vendors and respond with 501 (decision-12), unknown ones under {@code
- * /admin} with 404. Port 0 picks a free port ({@link #port()}).
+ * ({@link Gui}, LIANA-148), the page Verkehr reads the Tiger proxy via {@link TraceApi}
+ * (LIANA-195.03); HTTPS with ID.AK.AUT like the KMS, without client auth. All other paths are
+ * management of other vendors and respond with 501 (decision-12), unknown ones under {@code /admin}
+ * with 404. Port 0 picks a free port ({@link #port()}).
  */
 @Singleton
 public class AdminServer {
@@ -78,6 +83,8 @@ public class AdminServer {
   private final OpenApi openApi;
   private final int configuredPort;
   private ProtocolSwitch server;
+  private final TraceChannels channels;
+  private final TraceApi trace;
 
   AdminServer(
       Vertx vertx,
@@ -88,7 +95,21 @@ public class AdminServer {
       CatsServer cats,
       LianaConfig config,
       @ConfigProperty(name = "quarkus.application.version") String version,
-      AdminEvents events) {
+      io.quarkus.vertx.http.HttpServer konnektor,
+      AdminEvents events,
+      Traffic traffic,
+      TraceChannels channels) {
+    this.channels = channels;
+    this.trace =
+        new TraceApi(
+            config,
+            traffic,
+            channels,
+            () -> events.stateChanged("trace"),
+            json,
+            konnektor::getPort,
+            () -> port(),
+            kms::compatibilityPort);
     this.events = events;
     this.openApi = new OpenApi(version);
     this.vertx = vertx;
@@ -146,6 +167,15 @@ public class AdminServer {
 
   private Router router() {
     Router router = Router.router(vertx);
+    // LIANA-195: KMS, CATS and robot, not the Admin API and the GUI, which show the trace
+    HttpTrace.install(
+        router,
+        channels.traffic(TraceChannels.MANAGEMENT),
+        path ->
+            !path.equals("/")
+                && !path.startsWith(Gui.MOUNT + "/")
+                && !path.equals("/admin")
+                && !path.startsWith("/admin/"));
     router.route("/admin/*").handler(BodyHandler.create());
     router
         .get("/admin/ready")
@@ -277,12 +307,15 @@ public class AdminServer {
                   ct -> events.terminalChanged(String.valueOf(ct.get("CTID")), "ct-discovery"));
               respond(ctx, 200, ctList);
             });
+    trace.routes(router);
     router.get(OpenApi.PATH).handler(openApi::send);
     router
         .post("/admin/reset")
         .blockingHandler(
             ctx -> {
               api.reset();
+              // switched-off trace channels too (LIANA-195.05)
+              channels.reset();
               events.stateChanged("reset");
               respond(ctx, 200, api.terminals());
             });
@@ -449,7 +482,8 @@ public class AdminServer {
 
   private static void failure(RoutingContext ctx) {
     Throwable failure = ctx.failure();
-    if (failure instanceof BadRequest) {
+    if (failure instanceof BadRequest || failure instanceof CardImages.Unusable) {
+      // an unusable PKCS#12 is found but not a card (LIANA-220)
       error(ctx, 400, failure.getMessage());
     } else if (failure instanceof IllegalArgumentException) {
       error(ctx, 404, failure.getMessage());

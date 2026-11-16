@@ -60,6 +60,7 @@ final class Gui {
           "pages/tls.js",
           "pages/profile.js",
           "pages/infomodel.js",
+          "pages/trace.js",
           "vendor/preact-htm.js");
 
   static final String CSP =

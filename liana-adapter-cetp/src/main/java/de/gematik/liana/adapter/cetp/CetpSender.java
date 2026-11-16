@@ -23,6 +23,7 @@ import de.gematik.liana.kern.error.ConnectorError;
 import de.gematik.liana.kern.event.Event;
 import de.gematik.liana.kern.event.EventSink;
 import de.gematik.liana.kern.event.Subscription;
+import de.gematik.liana.kern.trace.Traffic;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,6 +31,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -70,8 +72,16 @@ public final class CetpSender implements EventSink, AutoCloseable {
   /** Open connection per Ereignissenke; used only from its queue. */
   private final Map<String, Connection> connections = new ConcurrentHashMap<>();
 
+  private final Traffic traffic;
+
   public CetpSender(Connector connector) {
+    this(connector, Traffic.OFF);
+  }
+
+  /** {@code traffic} receives every CETP message as written (LIANA-195). */
+  public CetpSender(Connector connector, Traffic traffic) {
     this.connector = connector;
+    this.traffic = traffic;
   }
 
   @Override
@@ -111,15 +121,26 @@ public final class CetpSender implements EventSink, AutoCloseable {
       if (!reused) {
         connection = connect(eventTo);
       }
+      byte[] frame = frame(xml);
       try {
-        connection.write(frame(xml));
+        connection.write(frame);
       } catch (IOException e) {
         if (!reused) {
           throw e;
         }
         connection.close();
-        connect(eventTo).write(frame(xml));
+        connection = connect(eventTo);
+        connection.write(frame);
       }
+      // LIANA-195.04: both ends with the IP of the socket; the sink named after EventTo, also when
+      // liana.events.redirect sends the connection elsewhere
+      Socket socket = connection.socket;
+      traffic.report(
+          frame,
+          traffic.self(socket.getLocalAddress(), socket.getLocalPort()),
+          Traffic.address(URI.create(eventTo).getHost(), socket.getInetAddress(), socket.getPort()),
+          Instant.now(),
+          null);
     } catch (IOException | RuntimeException e) {
       Optional.ofNullable(connections.remove(eventTo)).ifPresent(Connection::close);
       LOG.log(

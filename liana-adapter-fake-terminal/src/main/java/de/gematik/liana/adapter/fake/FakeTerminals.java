@@ -148,6 +148,8 @@ public final class FakeTerminals {
   private Path resolve(String terminal, int slot, String image) {
     try {
       return images.resolve(image);
+    } catch (CardImages.Unusable e) {
+      throw new CardImages.Unusable(terminal + "/" + slot + ": " + e.getMessage(), e);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(terminal + "/" + slot + ": " + e.getMessage(), e);
     }

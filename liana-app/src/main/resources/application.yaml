@@ -6,6 +6,7 @@ quarkus:
     name: liana
   http:
     port: 8080                 # Konnektor interface: /connector.sds, SOAP services
+    http2: false               # HTTP/1.1 like a Konnektor, no h2c upgrade (the trace sees HTTP/1.x only, LIANA-195)
     limits:
       # TIP1-A_4500-02: documents up to 25 MB, Base64 in the SOAP body about 35 MB (KUC_1607_105, LIANA-112.07)
       max-body-size: 40M
@@ -19,8 +20,8 @@ quarkus:
     # Runs on any x86-64 CPU and under emulation (QEMU without AVX); GraalVM defaults to x86-64-v3 (LIANA-216)
     additional-build-args: -march=compatibility
     resources:
-      # Control Center (LIANA-148), OpenAPI (LIANA-149) and schemas for the request validation (LIANA-48) from the classpath
-      includes: gui/**,admin/openapi.yaml,de/gematik/liana/contract/schemas/**
+      # Control Center (LIANA-148), OpenAPI (LIANA-149), SMC-B template for PKCS#12 (LIANA-220) and schemas for the request validation (LIANA-48) from the classpath
+      includes: gui/**,admin/openapi.yaml,cards/**,de/gematik/liana/contract/schemas/**
 
 liana:
   env: ru                      # ru | tu | pu, goes into the .kon export
@@ -140,10 +141,17 @@ liana:
       timeout: 10s
     # imported-cas:                           # CERT_IMPORTED_CA_LIST, e.g. [./support/pki/replay/replay-ca.pem]
 
-  # Card APDUs in the Tiger log (LIANA-27): POST /traffic to the admin port of a Tiger proxy, SICCT envelope
+  # Tracing (LIANA-27, LIANA-195): every message LIANA sends or receives, plaintext after TLS, as
+  # POST /traffic to the admin port of a Tiger proxy, supplementary (the proxy drops what it also sees on the wire):
+  # Konnektor interface (SOAP, connector.sds), KMS, CATS, robot, CETP, UFS, online TSL, card APDUs (fake CT in a
+  # SICCT envelope, eHealth CT the SICCT envelopes as on the wire); not the Admin API and the GUI
   trace:
     # push-url: http://tiger-proxy:18080   # no push without a value; env LIANA_TRACE_PUSH_URL
-    push-timeout: 500ms                  # per push; a slow proxy holds up no APDU
+    push-timeout: 500ms                  # per push; a slow proxy holds up nothing
+    # name: konnektor-a                  # LIANA in the trace as name/IP:Port (LIANA-195.04); default host of tls.url or
+                                         # kon-export.url, otherwise konnektor; no IP, not localhost
+    # webui-url: http://localhost:18080/webui   # link on the Control Center page Verkehr, as the browser reaches the
+                                                # proxy; default <push-url>/webui (LIANA-195.03)
 
   # Kartenterminaldienst (gemSpec_Kon TAB_KON_527): service discovery and TLS to eHealth KTs (LIANA-75/76)
   ctm:
@@ -170,6 +178,11 @@ liana:
     - /opt/liana/images/g20
     - /opt/liana/images/gsmc-k
     - /opt/liana/images/kvk
+  # A *.p12 in these folders becomes an SMC-B (LIANA-220): template from smcb-valid, C.HCI.AUT.E256 and PrK.HCI.AUT.E256
+  # from the PKCS#12, ICCSN from the Telematik-ID 1-SMC-B-Testkarte--<15 digits> or else synthetic 8027699999…; a slot
+  # selects it by file name without .p12. The passwords are tried in this order, then the empty one.
+  card-p12:
+    passwords: ["00", changeit, gematik, "12345678", "123456", liana]
 
   # Cards and identities in the structure of the TI (LIANA-98, decision-14), the only place for identities.
   infrastructure:

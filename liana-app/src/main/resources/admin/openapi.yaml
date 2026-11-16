@@ -19,6 +19,7 @@ tags:
   - name: Terminals
   - name: Karten
   - name: Ereignisse
+  - name: Verkehr
   - name: TLS und PKI
   - name: Profil und Einstellungen
   - name: Export
@@ -221,7 +222,7 @@ paths:
               properties:
                 image:
                   type: string
-                  description: Dateiname oder ICCSN aus `liana.card-images` (GET /admin/images), oder absoluter Pfad
+                  description: Dateiname (auch einer PKCS#12, aus der LIANA eine SMC-B erzeugt, LIANA-220) oder ICCSN aus `liana.card-images` (GET /admin/images), oder absoluter Pfad; unbrauchbare PKCS#12 → 400
                   example: egk-valid
       responses:
         "200": { $ref: "#/components/responses/Terminal" }
@@ -338,6 +339,69 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/LogEntry" }
         "400": { $ref: "#/components/responses/BadRequest" }
+
+  /admin/trace:
+    get:
+      tags: [Verkehr]
+      summary: Weiterleitung des Verkehrs an den Tiger-Proxy (LIANA-195.03)
+      description: |
+        Welcher Kanal welche Teile seiner Nachrichten wohin meldet, aus der Konfiguration dieses Starts, dazu der
+        Traffic-Push an `liana.trace.push-url` mit Zählern seit dem Start. Auch ohne `push-url` (Zustand `off`).
+      responses:
+        "200":
+          description: Push, Link zur Tiger-WebUI und Kanäle
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TraceOverview" }
+
+  /admin/trace/messages:
+    get:
+      tags: [Verkehr]
+      summary: Nachrichten im verknüpften Tiger-Proxy
+      description: |
+        Reicht `GET /webui/getMessagesWithMeta` des Proxys unter `liana.trace.push-url` unverändert durch (interne
+        API der Tiger-WebUI, aufgezeichnet mit Tiger 4.5.0). `from` und `to` schließen ein.
+      parameters:
+        - { name: filter, in: query, required: false, description: "JEXL (z. B. $.sender =~ '.*liana.*') oder Text in Anführungszeichen", schema: { type: string } }
+        - { name: from, in: query, required: false, schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: false, schema: { type: string, format: date-time } }
+      responses:
+        "200":
+          description: Antwort der Tiger-WebUI (total, totalFiltered, hash, messages mit uuid, sequenceNumber, timestamp, sender, recipient, infoString, request)
+          content:
+            application/json:
+              schema: { type: object }
+        "400": { description: "Filter vom Proxy abgelehnt oder Zeit kein ISO-8601", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "404": { description: "kein Tiger-Proxy verknüpft (liana.trace.push-url fehlt)", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "502": { $ref: "#/components/responses/BadGateway" }
+
+  /admin/trace/channels/{id}:
+    put:
+      tags: [Verkehr]
+      summary: Kanal an- oder ausschalten (LIANA-195.05)
+      description: |
+        Ein ausgeschalteter Kanal meldet nichts an den Tiger-Proxy, die übrigen weiter. Flüchtig wie jede Änderung über
+        die Admin-API; beim Start und nach `POST /admin/reset` sind alle Kanäle an. `id` aus `routes[].id` von
+        `GET /admin/trace`; Kanäle ohne `id` (Admin-API, KT-Steuerschnittstelle) melden nie.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, example: "kt:KT-01" } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [on]
+              properties:
+                on: { type: boolean }
+      responses:
+        "200":
+          description: Die Weiterleitung mit dem neuen Zustand
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TraceOverview" }
+        "400": { description: "Body ohne on", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "404": { description: "kein schaltbarer Kanal dieses Starts", content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
 
   /admin/events:
     get:
@@ -579,6 +643,11 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    BadGateway:
+      description: Tiger-Proxy nicht erreichbar oder mit Fehler
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     NotImplemented:
       description: in LIANA nicht umgesetzt, etwa Karten an einem eHealth-KT (decision-12)
       content:
@@ -586,6 +655,36 @@ components:
           schema: { $ref: "#/components/schemas/Error" }
 
   schemas:
+    TraceOverview:
+      type: object
+      properties:
+        name: { type: string, example: konnektor-a, description: "Name von LIANA im Trace (liana.trace.name, sonst Host aus liana.tls.url bzw. liana.kon-export.url, sonst konnektor), Adressen als Name/IP:Port" }
+        push:
+          type: object
+          properties:
+            url: { type: string, nullable: true, description: liana.trace.push-url }
+            target: { type: string, nullable: true, description: "<push-url>/traffic" }
+            timeout: { type: string, example: PT0.5S }
+            state: { type: string, enum: [off, ok, failing] }
+            delivered: { type: integer, description: vom Proxy angenommen }
+            failed: { type: integer, description: abgelehnt oder Proxy nicht erreichbar }
+            dropped: { type: integer, description: verloren, weil die Warteschlange voll war }
+            lastError: { type: string, nullable: true }
+        webUi: { type: string, nullable: true, description: "Link für den Browser, liana.trace.webui-url oder <push-url>/webui/" }
+        routes:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: string, nullable: true, example: "kt:KT-01", description: "für PUT /admin/trace/channels/{id}; null, wenn der Kanal nie meldet" }
+              channel: { type: string }
+              endpoint: { type: string, description: Weg auf der Leitung }
+              parts: { type: string, description: welche Teile der Nachrichten LIANA meldet }
+              trace: { type: string, nullable: true, description: Absender und Empfänger im Tiger-Log }
+              on: { type: boolean, description: Kanal eingeschaltet }
+              pushed: { type: boolean, description: "geht an den Proxy: eingeschaltet und push-url gesetzt" }
+              note: { type: string, nullable: true }
+
     Error:
       type: object
       required: [error]
@@ -609,6 +708,7 @@ components:
         konnektorPort: { type: integer }
         adminPort: { type: integer }
         terminalMode: { type: string }
+        started: { type: string, format: date-time, description: "Start von LIANA (LIANA-195.06)" }
 
     SelfTest:
       type: object
@@ -714,6 +814,7 @@ components:
               cardHandle: { type: string }
               ctId: { type: string }
               slotNo: { type: integer }
+              started: { type: string, format: date-time, description: Beginn der Sitzung (Zeitfenster für Verkehr) }
               deadline: { type: string, format: date-time }
               timer: { type: string, enum: [Konnektor, PoPP] }
         verifiedPins:

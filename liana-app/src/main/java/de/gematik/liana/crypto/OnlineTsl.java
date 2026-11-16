@@ -19,12 +19,15 @@
  */
 package de.gematik.liana.crypto;
 
+import de.gematik.liana.kern.trace.Traffic;
+import de.gematik.liana.trace.ClientTrace;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.jboss.logging.Logger;
@@ -59,11 +62,17 @@ public final class OnlineTsl {
    */
   public static CompletableFuture<Optional<TrustSpace.TslInfo>> start(
       TrustSpace trustSpace, Mode mode, URI url, Duration timeout) {
+    return start(trustSpace, mode, url, timeout, Traffic.OFF);
+  }
+
+  /** {@code traffic} receives the download (LIANA-195). */
+  public static CompletableFuture<Optional<TrustSpace.TslInfo>> start(
+      TrustSpace trustSpace, Mode mode, URI url, Duration timeout, Traffic traffic) {
     return switch (mode) {
       case OFF -> CompletableFuture.completedFuture(Optional.empty());
       case ENFORCE -> {
         try {
-          yield CompletableFuture.completedFuture(load(trustSpace, url, timeout));
+          yield CompletableFuture.completedFuture(load(trustSpace, url, timeout, traffic));
         } catch (IOException | RuntimeException e) {
           throw new IllegalStateException(
               "liana.pki.tsl-online.mode=enforce: TSL " + url + " nicht geladen: " + reason(e), e);
@@ -75,7 +84,7 @@ public final class OnlineTsl {
             new Thread(
                 () -> {
                   try {
-                    result.complete(load(trustSpace, url, timeout));
+                    result.complete(load(trustSpace, url, timeout, traffic));
                   } catch (IOException | RuntimeException e) {
                     LOG.warnf(
                         "TSL %s nicht geladen (%s), LIANA arbeitet mit %s weiter",
@@ -91,11 +100,11 @@ public final class OnlineTsl {
     };
   }
 
-  private static Optional<TrustSpace.TslInfo> load(TrustSpace trustSpace, URI url, Duration timeout)
-      throws IOException {
+  private static Optional<TrustSpace.TslInfo> load(
+      TrustSpace trustSpace, URI url, Duration timeout, Traffic traffic) throws IOException {
     TrustSpace.TslInfo before = trustSpace.tsl();
     Optional<TrustSpace.TslInfo> replaced =
-        trustSpace.replaceTsl(fetch(url, timeout), url.toString());
+        trustSpace.replaceTsl(fetch(url, timeout, traffic), url.toString());
     replaced.ifPresentOrElse(
         tsl ->
             LOG.infof(
@@ -120,6 +129,10 @@ public final class OnlineTsl {
    * certificate_unknown}).
    */
   static byte[] fetch(URI url, Duration timeout) throws IOException {
+    return fetch(url, timeout, Traffic.OFF);
+  }
+
+  static byte[] fetch(URI url, Duration timeout, Traffic traffic) throws IOException {
     HttpClient http =
         HttpClient.newBuilder()
             .connectTimeout(timeout)
@@ -127,11 +140,11 @@ public final class OnlineTsl {
             .followRedirects(HttpClient.Redirect.NORMAL)
             .build();
     HttpResponse<byte[]> response;
+    HttpRequest request = HttpRequest.newBuilder(url).timeout(timeout).GET().build();
     try {
-      response =
-          http.send(
-              HttpRequest.newBuilder(url).timeout(timeout).GET().build(),
-              HttpResponse.BodyHandlers.ofByteArray());
+      Instant sent = Instant.now();
+      response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+      ClientTrace.report(traffic, request, null, sent, response);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       throw new IOException("Abruf unterbrochen", e);
